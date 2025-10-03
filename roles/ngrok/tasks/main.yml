@@ -8,6 +8,11 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# ngrok Tasks
+# This is the main task file for the ngrok role. It installs ngrok, a tool for
+# creating secure tunnels to localhost.
+
+# Download and install ngrok.
 - name: Install ngrok
   unarchive:
     src: https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip
@@ -18,17 +23,20 @@
   ignore_errors: yes
   register: x
 
+# Get the installed version of ngrok.
 - name: "Get ngrok version"
   shell: "/usr/local/bin/ngrok -v | head -n 1 | awk '{ print $3 }'"
   register: ngrok_version
   ignore_errors: yes
   when: x is success
 
+# Display the installed version of ngrok.
 - name: "Display ngrok version"
   debug:
     msg: "ngrok {{ ngrok_version.stdout }} installed."
   when: x is success
 
+# If the installation failed, display an error message.
 - debug:
     msg: "ngrok install failed."
   when: x is not success

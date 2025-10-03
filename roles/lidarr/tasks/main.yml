@@ -9,6 +9,12 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Lidarr Tasks
+# This is the main task file for the Lidarr role. It installs and configures
+# Lidarr, a music manager for Usenet and BitTorrent users.
+
+# Include the cloudflare-dns role to set the DNS record for the lidarr
+# subdomain.
 - name: "Set DNS Record on CloudFlare"
   include_role:
     name: cloudflare-dns
@@ -16,19 +22,23 @@
     subdomain: lidarr
   when: cloudflare_enabled
 
+# Ensure that any previous Lidarr container is removed.
 - name: Stop and remove any existing container
   docker_container:
     name: lidarr
     state: absent
 
+# Import tasks for migrating from Suitarr.
 - name: Suitarr Migration Tasks
   import_tasks: "subtasks/suitarr_migration.yml"
 
+# Create the necessary directories for Lidarr configuration.
 - name: Create lidarr directories
   file: "path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}"
   with_items:
     - /opt/lidarr
 
+# Set the default volumes for the Lidarr container.
 - name: Set default_volumes variable
   set_fact:
     default_volumes:
@@ -37,6 +47,7 @@
       - "/mnt:/mnt"
       - "/mnt/unionfs/Media/Music:/music"
 
+# Create and start the Lidarr Docker container.
 - name: Create and start container
   docker_container:
     name: lidarr

@@ -8,6 +8,11 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Drive STRM Tasks
+# This is the main task file for the drive_strm role. It sets up a service
+# that creates STRM files from Google Drive.
+
+# Include the cloudflare-dns role to set the DNS record for the strm subdomain.
 - name: "Set DNS Record on CloudFlare"
   include_role:
     name: cloudflare-dns
@@ -15,6 +20,7 @@
     subdomain: strm
   when: cloudflare_enabled
 
+# Create the necessary directories for drive_strm.
 - name: "Create drive_strm directories"
   file: "path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}"
   with_items:
@@ -22,16 +28,20 @@
     - "/opt/scripts/drive_strm"
     - "/mnt/strm"
 
+# Ensure that any previous drive_strm container is removed.
 - name: Stop and remove any existing container
   docker_container:
     name: drive_strm
     state: absent
 
+# Check if the config.json file already exists.
 - name: "Check if '/opt/drive_strm/config.json' exists"
   stat:
     path: "/opt/drive_strm/config.json"
   register: config_json
 
+# This task rebuilds the STRM files if the drive_strm_rebuild tag is used or
+# if the config.json file does not exist.
 - name: Rebuild Drive STRMs
   shell: |
     APP_PATH="/opt/drive_strm"
@@ -43,25 +53,32 @@
   when: ('drive_strm_rebuild' in ansible_run_tags) or
     (not config_json.stat.exists)
 
+# This block is executed if the config.json file does not exist. It prompts the
+# user for their Google Drive API credentials and creates the config.json file.
 - name: Do the following tasks when 'config.json' does not exist.
   block:
 
+  # Prompt the user for their Google Drive Client ID.
   - name: "Get Google Drive Client ID"
     pause:
       prompt: "Enter your Google Drive Client ID"
     register: client_id
 
+  # Display the entered Client ID.
   - name: "Display Google Drive Client ID"
     debug: msg="Using Google Drive Client ID{{ ':' }} {{ client_id.user_input }}"
 
+  # Prompt the user for their Google Drive Client Secret.
   - name: "Get Google Drive Client Secret"
     pause:
       prompt: "Enter your Google Drive Client Secret"
     register: client_secret
 
+  # Display the entered Client Secret.
   - name: "Display Google Drive Client Secret"
     debug: msg="Using Google Drive Client Secret{{ ':' }} {{ client_secret.user_input }}"
 
+  # Create the config.json file from the template.
   - name: Import 'config.json'
     template:
       src: config.json.j2
@@ -73,20 +90,25 @@
 
   when: not config_json.stat.exists
 
+# Check if the vault.db file already exists.
 - name: "Check if '/opt/drive_strm/vault.db' exists"
   stat:
     path: "/opt/drive_strm/vault.db"
   register: existing_vault_db
 
+# This block is executed if the vault.db file does not exist. It guides the
+# user through the process of authorizing the application with Google Drive.
 - name: "Do the following tasks when 'vault.db' does not exist"
   block:
 
+    # Pull the Docker image for drive_strm.
     - name: "Pull Docker image"
       docker_image:
         name: "cloudb0x/drive_strm:latest"
         pull: yes
         force: yes
 
+    # Run the drive_strm container to get an authorization link.
     - name: "Retrieve authorization link"
       docker_container:
         name: drive_strm
@@ -112,20 +134,25 @@
         - ["authorize", "-l"]
         - ["authorize", "-l"]
 
+    # If the authorization link could not be retrieved, fail the playbook.
     - name: "Failed to retrieve authorization link"
       fail:
         debug: "Failed to retrieve authorization link"
       when: (authorize_link.results[1].ansible_facts.docker_container.Output | trim | length == 0)
 
+    # Display the authorization link to the user.
     - name: "Authorization Link"
       debug:
         msg: "Authorization Link: {{ authorize_link.results[1].ansible_facts.docker_container.Output | trim }}"
 
+    # Prompt the user to enter the authorization code.
     - name: "Authorization Code"
       pause:
         prompt: "Please visit the above link, retrive the authorization code, and enter it below"
       register: authorization_code
 
+    # Run the drive_strm container to generate the vault.db file using the
+    # authorization code.
     - name: "Generate 'vault.db'"
       docker_container:
         name: drive_strm
@@ -147,11 +174,13 @@
         purge_networks: yes
         state: started
 
+    # Check if the vault.db file was created successfully.
     - name: "Check if '/opt/drive_strm/vault.db' exists"
       stat:
         path: "/opt/drive_strm/vault.db"
       register: new_token_json
 
+    # If the vault.db file was not created, fail the playbook.
     - name: "Failed to generate 'vault.db'"
       fail:
         msg: "Failed to generate 'vault.db'"
@@ -159,6 +188,7 @@
 
   when: not existing_vault_db.stat.exists
 
+# Copy the drive_strm_rebuild.sh script to the scripts directory.
 - name: Import 'drive_strm_rebuild.sh' script
   copy:
     src: "drive_strm_rebuild.sh"
@@ -168,6 +198,7 @@
     mode: 0775
     force: yes
 
+# Create and start the drive_strm Docker container.
 - name: "Create and start container"
   docker_container:
     name: drive_strm

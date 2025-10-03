@@ -8,11 +8,16 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Feeder Unmount Tasks
+# This file contains tasks for unmounting the feeder box directories.
+
+# Check if the feeder.service file exists.
 - name: Check 'feeder.service' exists
   stat:
     path: '/etc/systemd/system/feeder.service'
   register: feeder_service
 
+# Stop and disable the feeder.service.
 - name: Stop 'feeder.service'
   systemd:
     name: feeder
@@ -21,6 +26,7 @@
     daemon_reload: yes
   when: feeder_service.stat.exists
 
+# Remove the /mnt/feeder directory.
 - name: Remove paths
   file:
     path: "{{ item }}"
@@ -29,7 +35,9 @@
     - "/mnt/feeder"
 
 # UnionFS Edits
+# The following tasks revert the changes made to the unionfs.service file.
 
+# Remove the 'After' directive for feeder.service from the unionfs.service file.
 - name: Remove 'After=feeder.service' in 'unionfs.service'
   lineinfile:
     path: /etc/systemd/system/unionfs.service
@@ -39,6 +47,7 @@
     backrefs: yes
   when: unionfs_service.stat.exists
 
+# Replace /mnt/feeder with /mnt/local in the unionfs.service file.
 - name: Replace '/mnt/feeder' with '/mnt/local' in 'unionfs.service'
   replace:
     path: /etc/systemd/system/unionfs.service
@@ -47,7 +56,9 @@
   when: unionfs_service.stat.exists
 
 # MergerFS Edits
+# The following tasks revert the changes made to the mergerfs.service file.
 
+# Remove the 'After' directive for feeder.service from the mergerfs.service file.
 - name: Remove 'After=feeder.service' in 'mergerfs.service'
   lineinfile:
     path: /etc/systemd/system/mergerfs.service
@@ -57,6 +68,7 @@
     backrefs: yes
   when: mergerfs_service.stat.exists
 
+# Replace /mnt/feeder with /mnt/local in the mergerfs.service file.
 - name: Replace '/mnt/feeder' with '/mnt/local' in 'mergerfs.service'
   replace:
     path: /etc/systemd/system/mergerfs.service

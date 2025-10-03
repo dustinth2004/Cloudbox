@@ -8,11 +8,16 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Hetzner NFS Unmount Tasks
+# This file contains tasks for unmounting the Hetzner NFS share.
+
+# Check if the nfs_vlan.service file exists.
 - name: Check 'nfs_vlan.service' exists
   stat:
     path: '/etc/systemd/system/nfs_vlan.service'
   register: nfs_vlan_service
 
+# Stop and disable the nfs_vlan.service.
 - name: Stop 'nfs_vlan.service'
   systemd:
     state: stopped
@@ -21,6 +26,7 @@
     enabled: no
   when: nfs_vlan_service.stat.exists
 
+# Uninstall the NFS client packages.
 - name: Uninstall nfs requirements
   apt:
     state: absent
@@ -28,6 +34,7 @@
       - rpcbind
       - nfs-common
 
+# Remove the configuration files and directories.
 - name: Remove files
   file:
     path: "{{ item }}"
@@ -40,7 +47,9 @@
     - "/mnt/feeder"
 
  # unionfs edits
+# The following tasks revert the changes made to the unionfs.service file.
 
+# Remove the 'After' directive for init_vlan.service from the unionfs.service file.
 - name: Remove 'After=init_vlan.service' in 'unionfs.service'
   lineinfile:
     path: /etc/systemd/system/unionfs.service
@@ -50,6 +59,7 @@
     backrefs: yes
   when: unionfs_service.stat.exists
 
+# Replace /mnt/feeder with /mnt/local in the unionfs.service file.
 - name: Replace '/mnt/feeder' with '/mnt/local' in 'unionfs.service'
   replace:
     path: /etc/systemd/system/unionfs.service
@@ -58,7 +68,9 @@
   when: unionfs_service.stat.exists
 
   # mergerfs edits
+# The following tasks revert the changes made to the mergerfs.service file.
 
+# Remove the 'After' directive for init_vlan.service from the mergerfs.service file.
 - name: Remove 'After=init_vlan.service' in 'mergerfs.service'
   lineinfile:
     path: /etc/systemd/system/mergerfs.service
@@ -68,6 +80,7 @@
     backrefs: yes
   when: mergerfs_service.stat.exists
 
+# Replace /mnt/feeder with /mnt/local in the mergerfs.service file.
 - name: Replace '/mnt/feeder' with '/mnt/local' in 'mergerfs.service'
   replace:
     path: /etc/systemd/system/mergerfs.service

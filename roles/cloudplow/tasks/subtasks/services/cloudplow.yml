@@ -8,19 +8,26 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Cloudplow Service Tasks
+# This file contains tasks for managing the cloudplow.service.
+
+# Gather facts about the system services.
 - name: Services | Cloudplow | Populate Service Facts
   service_facts:
 
+# Check if the cloudplow.service is running.
 - name: Services | Cloudplow | Get 'cloudplow.service' state
   set_fact:
     cloudplow_service_running: "{{ (services['cloudplow.service'] is defined) and (services['cloudplow.service']['state'] == 'running') }}"
 
+# Stop the cloudplow.service if it is running.
 - name: Services | Cloudplow | Stop 'cloudplow.service'
   systemd:
     name: cloudplow
     state: stopped
   when: (cloudplow_service_running)
 
+# Update the User and Group in the cloudplow.service file.
 - name: Services | Cloudplow | Update 'User/Group' in 'cloudplow.service'
   ini_file:
     path: "/etc/systemd/system/cloudplow.service"

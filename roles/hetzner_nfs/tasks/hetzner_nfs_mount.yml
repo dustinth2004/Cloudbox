@@ -8,12 +8,17 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Hetzner NFS Mount Tasks
+# This file contains tasks for mounting the Hetzner NFS share.
+
+# Create the necessary directories.
 - name: Create nfs server directories
   file: 'path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}'
   with_items:
     - /opt/hetzner_nfs
     - /mnt/feeder
 
+# Create the /etc/hosts.deny file from the template.
 - name: Import 'hosts.deny' file
   template:
     src: client/hosts.deny.j2
@@ -23,6 +28,7 @@
     mode: 0644
     force: yes
 
+# Create the /etc/hosts.allow file from the template.
 - name: Import 'hosts.allow' file
   template:
     src: client/hosts.allow.j2
@@ -32,6 +38,7 @@
     mode: 0644
     force: yes
 
+# Install the required packages for the NFS client.
 - name: Install nfs requirements
   apt:
     state: present
@@ -39,6 +46,8 @@
       - rpcbind
       - nfs-common
 
+# Create the init_vlan.sh script from the template. This script is used to
+# initialize the VLAN interface.
 - name: Import 'init_vlan.sh' file
   template:
     src: client/init_vlan.sh.j2
@@ -48,11 +57,13 @@
     mode: 0775
     force: yes
 
+# Check if the nfs_vlan.service file exists.
 - name: Check 'nfs_vlan.service' exists
   stat:
     path: '/etc/systemd/system/nfs_vlan.service'
   register: nfs_vlan_service
 
+# Create the nfs_vlan.service file from the template if it does not exist.
 - name: Import 'nfs_vlan.service' file
   template:
     src: client/nfs_vlan.service.j2
@@ -63,6 +74,7 @@
     force: yes
   when: not nfs_vlan_service.stat.exists
 
+# Start and enable the nfs_vlan.service.
 - name: Start 'nfs_vlan.service'
   systemd:
     state: started
@@ -70,6 +82,7 @@
     daemon_reload: yes
     enabled: yes
 
+# Add the NFS VLAN interface to vnstat for monitoring.
 - name: "Add nfs vlan interface to vnstat"
   shell: "vnstat -i {{ ansible_default_ipv4.interface }}.{{ hetzner_nfs.vlan_id }} -u"
   become: yes
@@ -77,7 +90,10 @@
   ignore_errors: yes
 
  # unionfs edits
+# The following tasks modify the unionfs.service file to use the Hetzner NFS mount.
 
+# Add an 'After' directive to the unionfs.service file to ensure that it
+# starts after the nfs_vlan.service.
 - name: Add 'After=init_vlan.service' to 'unionfs.service'
   lineinfile:
     path: /etc/systemd/system/unionfs.service
@@ -87,6 +103,7 @@
     backrefs: yes
   when: unionfs_service.stat.exists
 
+# Replace /mnt/local with /mnt/feeder in the unionfs.service file.
 - name: Replace '/mnt/local' with '/mnt/feeder' in 'unionfs.service'
   replace:
     path: /etc/systemd/system/unionfs.service
@@ -95,7 +112,10 @@
   when: unionfs_service.stat.exists
 
   # mergerfs edits
+# The following tasks modify the mergerfs.service file to use the Hetzner NFS mount.
 
+# Add an 'After' directive to the mergerfs.service file to ensure that it
+# starts after the nfs_vlan.service.
 - name: Add 'After=init_vlan.service' to 'mergerfs.service'
   lineinfile:
     path: /etc/systemd/system/mergerfs.service
@@ -105,6 +125,7 @@
     backrefs: yes
   when: mergerfs_service.stat.exists
 
+# Replace /mnt/local with /mnt/feeder in the mergerfs.service file.
 - name: Replace '/mnt/local' with '/mnt/feeder' in 'mergerfs.service'
   replace:
     path: /etc/systemd/system/mergerfs.service

@@ -35,6 +35,17 @@ log = root_logger.getChild('quassel_backlog_clear')
 ############################################################
 
 def error_exit(msg, restore_db=False, db_path=None):
+    """Logs an error message and exits the script.
+
+    Optionally restores a database backup before exiting.
+
+    Args:
+        msg (str): The error message to log.
+        restore_db (bool, optional): Whether to restore the database backup.
+            Defaults to False.
+        db_path (str, optional): The path to the database. Required if
+            `restore_db` is True. Defaults to None.
+    """
     log.error(msg)
     if restore_db and db_path:
         backup_db_path = os.path.join(os.path.dirname(db_path), 'quassel-storage.sqlite.bak')
@@ -48,6 +59,14 @@ def error_exit(msg, restore_db=False, db_path=None):
 
 
 def backup_database(db_path):
+    """Backs up the Quassel database.
+
+    Args:
+        db_path (str): The path to the Quassel database.
+
+    Returns:
+        bool: True if the backup was successful, False otherwise.
+    """
     try:
         backup_path = os.path.join(os.path.dirname(db_path), 'quassel-storage.sqlite.bak')
         log.info("Copying '%s' to '%s'", db_path, backup_path)
@@ -60,6 +79,14 @@ def backup_database(db_path):
 
 
 def get_buffers(cursor):
+    """Gets all buffers from the Quassel database.
+
+    Args:
+        cursor (sqlite3.Cursor): The database cursor.
+
+    Returns:
+        list or None: A list of buffers, or None if an error occurred.
+    """
     try:
         log.info("Fetching buffers")
         return cursor.execute("SELECT * FROM buffer").fetchall()
@@ -69,6 +96,18 @@ def get_buffers(cursor):
 
 
 def remove_backlog(cursor, buffer_id, last_seen_msg_id):
+    """Removes backlog messages from a buffer.
+
+    Args:
+        cursor (sqlite3.Cursor): The database cursor.
+        buffer_id (int): The ID of the buffer to clear.
+        last_seen_msg_id (int): The ID of the last seen message. All messages
+            before this will be deleted.
+
+    Returns:
+        sqlite3.Cursor or None: The cursor object if the operation was
+            successful, None otherwise.
+    """
     try:
         return cursor.execute("DELETE FROM backlog WHERE bufferid = ? AND messageid < ?",
                               (buffer_id, last_seen_msg_id,))
@@ -78,6 +117,15 @@ def remove_backlog(cursor, buffer_id, last_seen_msg_id):
 
 
 def dump_db(main_conn, new_db):
+    """Dumps the database to a new file to save space.
+
+    Args:
+        main_conn (sqlite3.Connection): The main database connection.
+        new_db (str): The path to the new database file.
+
+    Returns:
+        bool: True if the dump was successful, False otherwise.
+    """
     try:
         log.info("Dumping database to '%s'", new_db)
         script = ''.join(main_conn.iterdump())

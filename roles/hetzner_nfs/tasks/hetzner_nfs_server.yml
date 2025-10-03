@@ -8,11 +8,16 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Hetzner NFS Server Tasks
+# This file contains tasks for setting up the Hetzner NFS server.
+
+# Create the directory for the Hetzner NFS configuration.
 - name: Create nfs server directories
   file: 'path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}'
   with_items:
     - /opt/hetzner_nfs
 
+# Create the /etc/hosts.deny file from the template.
 - name: Import 'hosts.deny' file
   template:
     src: server/hosts.deny.j2
@@ -22,6 +27,7 @@
     mode: 0644
     force: yes
 
+# Install the required packages for the NFS server.
 - name: Install nfs server
   apt:
     state: present
@@ -29,6 +35,8 @@
       - rpcbind
       - nfs-kernel-server
 
+# Create the /etc/exports file from the template. This file defines which
+# directories are shared over NFS.
 - name: Import exports file
   template:
     src: server/exports.j2
@@ -38,9 +46,12 @@
     mode: 0644
     force: yes
 
+# Reload the NFS exports.
 - name: Reload exports
   shell: 'exportfs -ra'
 
+# Create the init_vlan.sh script from the template. This script is used to
+# initialize the VLAN interface.
 - name: Import 'init_vlan.sh' file
   template:
     src: server/init_vlan.sh.j2
@@ -50,11 +61,13 @@
     mode: 0775
     force: yes
 
+# Check if the nfs_vlan.service file exists.
 - name: Check 'nfs_vlan.service' exists
   stat:
     path: '/etc/systemd/system/nfs_vlan.service'
   register: nfs_vlan_service
 
+# Create the nfs_vlan.service file from the template if it does not exist.
 - name: Import 'nfs_vlan.service' file
   template:
     src: server/nfs_vlan.service.j2
@@ -65,6 +78,7 @@
     force: yes
   when: not nfs_vlan_service.stat.exists
 
+# Start and enable the nfs_vlan.service.
 - name: Start 'nfs_vlan.service'
   systemd:
     state: started
@@ -72,6 +86,7 @@
     daemon_reload: yes
     enabled: yes
 
+# Add the NFS VLAN interface to vnstat for monitoring.
 - name: "Add nfs vlan interface to vnstat"
   shell: "vnstat -i {{ ansible_default_ipv4.interface }}.{{ hetzner_nfs.vlan_id }} -u"
   become: yes

@@ -8,12 +8,17 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Snapshot Tasks
+# This file contains tasks for creating BTRFS snapshots for backups.
+
+# Set default variables for snapshots.
 - name: Snapshot | Set default variables
   set_fact:
     snapshot_type: ""
     backup_opt_path: "/opt/"
     use_snapshot: false
 
+# Determine the filesystem type of the root directory.
 - name: "Snapshot | Determine '/' filesystem type"
   set_fact:
     root_fstype: "{{ item.fstype }}"
@@ -21,6 +26,7 @@
   with_items:
     - "{{ ansible_mounts }}"
 
+# Determine the filesystem type of the /opt directory.
 - name: "Snapshot | Determine '/opt' filesystem type"
   set_fact:
     opt_fstype: "{{ item.fstype }}"
@@ -29,15 +35,17 @@
     - "{{ ansible_mounts }}"
 
 # BTRFS
-
+# This block contains tasks specific to BTRFS snapshots.
 - name: Snapshot | BTRFS specific tasks
   block:
 
+  # Set variables for BTRFS snapshots.
   - name: "Snapshot | Set general BTRFS variables"
     set_fact:
       snapshot_type: "btrfs"
       use_snapshot: true
 
+  # Set variables for BTRFS snapshots on the root filesystem.
   - name: "Snapshot | Set '/' BTRFS variables"
     set_fact:
       backup_snapshot_source_path: "/"
@@ -45,6 +53,7 @@
       backup_opt_path: "/btrfs/snapshots/root/opt/"
     when: (root_fstype is defined) and (root_fstype == 'btrfs')
 
+  # Set variables for BTRFS snapshots on the /opt filesystem.
   - name: "Snapshot | Set '/opt' BTRFS variables"
     set_fact:
       backup_snapshot_source_path: "/opt"
@@ -52,19 +61,23 @@
       backup_opt_path: "/opt/snapshots/opt/"
     when: (opt_fstype is defined) and (opt_fstype == 'btrfs')
 
+  # Check if a BTRFS snapshot already exists.
   - name: Snapshot | Check if BTRFS snapshot is mounted
     stat:
       path: "{{ backup_snapshot_destination_path }}"
     register: btrfs_snapshot_mounted
 
+  # This block deletes an existing BTRFS snapshot.
   - name: Snapshot | Delete BTRFS snapshot
     block:
 
+    # Delete the BTRFS snapshot.
     - name: Snapshot | Delete existing BTRFS snapshot (1/2)
       command: "btrfs subvolume delete {{ backup_snapshot_destination_path }}"
       register: snapshot_deletion
       ignore_errors: yes
 
+    # As a fallback, delete the snapshot directory.
     - name: Snapshot | Delete existing BTRFS snapshot (2/2)
       file:
         path: "{{ backup_snapshot_destination_path }}"
@@ -74,6 +87,7 @@
 
     when: (btrfs_snapshot_mounted.stat.isdir is defined) and (btrfs_snapshot_mounted.stat.isdir)
 
+  # Create the directory for the BTRFS snapshot.
   - name: Snapshot | Create BTRFS snapshot directory
     file: "path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}"
     with_items:

@@ -8,15 +8,21 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Cron Tasks
+# This file contains tasks for setting up the cron job for automated backups.
+
+# Get the full path to the ansible-playbook executable.
 - name: "Get ansible-playbook binary path."
   shell: "which ansible-playbook"
   register: playbook_binary
 
+# Remove the old cron job for backups, if it exists.
 - name: "Remove legacy cron backup task."
   cron:
     name: "Backup Cloudbox"
     state: absent
 
+# Create or update the cron job for automated backups.
 - name: "Schedule cron backup."
   cron:
     name: "Cloudbox Backup"

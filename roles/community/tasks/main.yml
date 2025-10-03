@@ -8,14 +8,20 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Community Tasks
+# This is the main task file for the community role.
+
+# Import the migration tasks.
 - name: Import Migration Tasks
   import_tasks: "subtasks/migration.yml"
 
+# Create the directory for the community repository.
 - name: Create Community directory
   file: "path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }} recurse=yes"
   with_items:
     - /opt/community
 
+# Clone the community repository from GitHub (HEAD).
 - name: Clone Community repo 'HEAD'
   git:
     repo: https://github.com/cloudbox/community.git
@@ -28,6 +34,7 @@
   ignore_errors: yes
   register: community_clone_status
 
+# If cloning HEAD fails, clone the master branch instead.
 - name: Clone Community repo 'master'
   git:
     repo: https://github.com/cloudbox/community.git
@@ -39,12 +46,14 @@
   become_user: "{{ user.name }}"
   when: community_clone_status is failed
 
+# Create a symlink to the community repository in the user's home directory.
 - name: Create symlink to folder in '/home'
   file:
     src: /opt/community/
     dest: "/home/{{ user.name }}/community"
     state: link
 
+# Copy the default files from the defaults directory if they are missing.
 - name: Import default files when missing
   copy:
     src: "{{ item }}"
@@ -56,5 +65,6 @@
   with_fileglob:
     - /opt/community/defaults/*.*
 
+# Import the ansible.cfg tasks.
 - name: ansible.cfg Tasks
   import_tasks: "subtasks/ansible_cfg.yml"

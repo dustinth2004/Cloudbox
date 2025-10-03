@@ -10,17 +10,25 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Nginx-Proxy Tasks
+# This is the main task file for the nginx-proxy role. It sets up the
+# nginx-proxy and letsencrypt containers, which together provide a reverse proxy
+# with automated SSL certificate generation.
+
+# Ensure that any previous nginx-proxy container is removed.
 - name: Stop and remove any existing container
   docker_container:
     name: nginx-proxy
     state: absent
 
+# Ensure that any previous letsencrypt container is removed.
 - name: Stop and remove any existing letsencrypt container
   docker_container:
     name: letsencrypt
     state: absent
 
 # BEGIN - Certs Sub-Folder Migration Tasks
+# The following tasks migrate the certificates to a new directory structure.
 - name: Check if 'nginx_proxy' folder exists
   stat:
     path: /opt/nginx-proxy
@@ -45,6 +53,7 @@
   when: (nginx_proxy_folder.stat.exists) and not (certs_folder.stat.exists)
 # END - Certs Sub-Folder Migration Tasks
 
+# Create the necessary directories for the nginx-proxy.
 - name: Create nginx-proxy directories
   file: "path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }} recurse=yes"
   with_items:
@@ -53,17 +62,20 @@
     - /opt/nginx-proxy/htpasswd
     - /opt/nginx-proxy/vhost.d
 
+# Check if the proxy.conf file exists.
 - name: Check if 'proxy.conf' file exists
   stat:
     path: "/opt/nginx-proxy/proxy.conf"
   register: proxy_conf
 
+# Delete the proxy.conf file if it is a symlink or a directory.
 - name: "Delete 'proxy.conf' if link or a folder"
   file:
     path: "/opt/nginx-proxy/proxy.conf"
     state: absent
   when:  (proxy_conf.stat.exists) and ((proxy_conf.stat.islnk) or (proxy_conf.stat.isdir))
 
+# Create the proxy.conf file from the template.
 - name: Import 'proxy.conf'
   copy:
     src: "proxy.conf"
@@ -74,6 +86,7 @@
     force: yes
   when: (not proxy_conf.stat.exists) or ((proxy_conf.stat.exists) and ((proxy_conf.stat.islnk) or (proxy_conf.stat.isdir)))
 
+# Create and start the nginx-proxy container.
 - name: Create and start container
   docker_container:
     name: nginx-proxy
@@ -101,6 +114,7 @@
     restart_policy: unless-stopped
     state: started
 
+# Create and start the letsencrypt-nginx-proxy-companion container.
 - name: Create and start letsencrypt container
   docker_container:
     name: letsencrypt

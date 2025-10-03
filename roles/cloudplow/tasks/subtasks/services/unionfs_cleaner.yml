@@ -8,13 +8,19 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# UnionFS Cleaner Service Tasks
+# This file contains tasks for removing the old unionfs_cleaner.service.
+
+# Gather facts about the system services.
 - name: Services | UnionFS Cleaner | Populate Service Facts
   service_facts:
 
+# Check if the unionfs_cleaner.service is running.
 - name: Services | UnionFS Cleaner | Get 'unionfs_cleaner.service' state
   set_fact:
     unionfs_cleaner_service_running: "{{ (services['unionfs_cleaner.service'] is defined) and (services['unionfs_cleaner.service']['state'] == 'running') }}"
 
+# Stop and disable the unionfs_cleaner.service if it is running.
 - name: Services | UnionFS Cleaner | Stop and disable 'unionfs_cleaner.service'
   systemd:
     name: unionfs_cleaner
@@ -22,11 +28,13 @@
     enabled: no
   when: (unionfs_cleaner_service_running)
 
+# Remove the unionfs_cleaner.service file.
 - name: Services | UnionFS Cleaner | Remove 'unionfs_cleaner.service' file
   file:
     path: "/etc/systemd/system/unionfs_cleaner.service"
     state: absent
     force: yes
 
+# Reload the systemd daemon.
 - name: "Services | UnionFS Cleaner | Systemd daemon-reload"
   systemd: daemon_reload=yes

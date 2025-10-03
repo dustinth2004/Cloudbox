@@ -2,32 +2,30 @@
 # Modified version of https://github.com/audreyr/jinja2_pluralize
 
 def pluralize(value, arg='s', arg2=None):
+    """A Jinja2 filter that returns a plural suffix if the value is not 1.
+
+    This filter is adapted from Django's `pluralize` filter. It returns a
+    plural suffix if the given value is not 1. The default suffix is 's'.
+
+    Examples:
+        - `{{ 1 | pluralize }}` will output nothing.
+        - `{{ 2 | pluralize }}` will output 's'.
+        - `{{ 2 | pluralize('es') }}` will output 'es'.
+        - `{{ 1 | pluralize('y', 'ies') }}` will output 'y'.
+        - `{{ 2 | pluralize('y', 'ies') }}` will output 'ies'.
+
+    Args:
+        value (int or list): The value to check for pluralization. Can be an
+            integer or a list.
+        arg (str, optional): The suffix to use for the plural case. If `arg2`
+            is provided, this will be the suffix for the singular case.
+            Defaults to 's'.
+        arg2 (str, optional): The suffix to use for the plural case when a
+            different suffix is needed for the singular case. Defaults to None.
+
+    Returns:
+        str: The plural or singular suffix based on the value.
     """
-    Adapted from django.template.defaultfilters:
-    https://github.com/django/django/blob/master/django/template/defaultfilters.py
-
-    Returns a plural suffix if the value is not 1. By default, 's' is used as
-    the suffix:
-
-    * If value is 0, vote{{ value | pluralize }} displays "0 votes".
-    * If value is 1, vote{{ value | pluralize }} displays "1 vote".
-    * If value is 2, vote{{ value | pluralize }} displays "2 votes".
-
-    If an argument is provided, that string is used instead:
-
-    * If value is 0, class{{ value | pluralize('es') }} displays "0 classes".
-    * If value is 1, class{{ value | pluralize('es') }} displays "1 class".
-    * If value is 2, class{{ value | pluralize('es') }} displays "2 classes".
-
-    If the provided argument contains a comma, the text before the comma is
-    used for the singular case and the text after the comma is used for the
-    plural case:
-
-    * If value is 0, cand{{ value | pluralize('y','ies') }} displays "0 candies".
-    * If value is 1, cand{{ value | pluralize('y','ies') }} displays "1 candy".
-    * If value is 2, cand{{ value | pluralize('y','ies') }} displays "2 candies".
-    """
-
     if arg2 is not None:
         singular_suffix = arg
         plural_suffix = arg2
@@ -50,9 +48,14 @@ def pluralize(value, arg='s', arg2=None):
 
 
 class FilterModule(object):
-    ''' adds pluralize filter '''
+    """A class to provide the pluralize filter to Ansible."""
+
     def filters(self):
+        """Returns a dictionary of filters.
+
+        Returns:
+            dict: A dictionary mapping filter names to filter functions.
+        """
         return {
-            # filter map
             'pluralize': pluralize
         }

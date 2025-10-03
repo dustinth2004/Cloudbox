@@ -8,23 +8,30 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
-# https://gist.github.com/hopeseekr/cd2058e71d01deca5bae9f4e5a555440
+# BTRFS Cleanup Tasks
+# This file contains tasks for cleaning up the Docker directory on a BTRFS
+# filesystem.
 
+# Check if the /var/lib/docker directory exists.
 - name: BTRFS | Cleanup | Check to see if '/var/lib/docker/' exists
   stat:
     path: "/var/lib/docker/"
   register: var_lib_docker
 
+# This block is executed if the /var/lib/docker directory exists.
 - name: BTRFS | Cleanup | Tasks when '/var/lib/docker' exists
   block:
 
+  # Check the filesystem type of the /var/lib/docker directory.
   - name: BTRFS | Cleanup | Check filesystem of '/var/lib/docker' path
     shell: stat -f -c %T /var/lib/docker
     register: var_lib_docker_file_system
 
+  # This block is executed if the filesystem is BTRFS.
   - name: BTRFS | Cleanup | Tasks when '/var/lib/docker' is btrfs
     block:
 
+    # Stop and remove all Docker containers, images, and volumes.
     - name: BTRFS | Cleanup | Remove all docker containers, images, and volumes
       shell: |
         docker container stop $(docker ps -aq) &> /dev/null || true
@@ -34,21 +41,26 @@
         docker volume rm $(docker volume ls -q) &> /dev/null || true
         docker volume prune -f &> /dev/null || true
 
+    # Stop the Docker service.
     - name: BTRFS | Cleanup | Stop docker service
       systemd:
         name: docker
         state: stopped
 
+    # Wait for 30 seconds.
     - name: BTRFS | Cleanup | Wait for 30 seconds before commencing
       wait_for:
         timeout: 30
 
+    # Delete all BTRFS subvolumes in the /var/lib/docker/btrfs/subvolumes
+    # directory.
     - name: BTRFS | Cleanup | Remove '/var/lib/docker' btrfs subvolumes
       shell: |
         for subvolume in /var/lib/docker/btrfs/subvolumes/*; do
             btrfs subvolume delete $subvolume &> /dev/null || true
         done
 
+    # Remove the /var/lib/docker directory.
     - name: BTRFS | Cleanup | Remove '/var/lib/docker' path
       shell: rm -rf /var/lib/docker
 

@@ -8,16 +8,24 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Suitarr Migration Tasks
+# This file contains tasks for migrating from Suitarr to Jackett.
+
+# Check if the /opt/jackett directory exists.
 - name: Suitarr Migration | Check folder exists
   stat:
     path: /opt/jackett
   register: folder
 
+# Check if the /opt/jackett/Jackett subdirectory exists.
 - name: Suitarr Migration | Check subfolder1 exists
   stat:
     path: /opt/jackett/Jackett
   register: subfolder1
 
+# If both directories exist, move the contents of the subdirectory to the parent
+# directory and set the correct ownership. This is to handle a change in the
+# directory structure from a previous version.
 - name: Suitarr Migration | Move 'Jackett' subfolder to 'jackett' folder
   shell: |
     mv /opt/jackett/Jackett/* /opt/jackett

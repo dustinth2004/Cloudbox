@@ -8,10 +8,14 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Variables Tasks
+# This file contains tasks for setting variables related to notifications.
+
 ################################
 # Config Variables
 ################################
 
+# Check if Apprise is enabled and all required variables are defined.
 - name: Variables | Set 'apprise_account_enabled' variable
   set_fact:
     apprise_account_enabled: "{{ true if not(
@@ -23,6 +27,7 @@
       )
       else false }}"
 
+# Check if Pushover is enabled and all required variables are defined.
 - name: Variables | Set 'pushover_account_enabled' variable
   set_fact:
     pushover_account_enabled: "{{ true if not(
@@ -50,10 +55,12 @@
 # Notification Services List
 ################################
 
+# Create an empty list to store the enabled notification services.
 - name: Variables | Create empty 'notification_services' list
   set_fact:
     notification_services: []
 
+# Build a list of enabled notification services.
 - name: Variables | Build 'notification_services' list
   set_fact:
     notification_services: "{{ notification_services + [ item.service ] }}"

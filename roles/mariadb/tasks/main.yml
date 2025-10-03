@@ -9,16 +9,24 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# MariaDB Tasks
+# This is the main task file for the MariaDB role. It installs and configures
+# MariaDB, a community-developed fork of the MySQL relational database
+# management system.
+
+# Ensure that any previous MariaDB container is removed.
 - name: Stop and remove any existing containers
   docker_container: "name={{ item }} state=absent"
   with_items:
     - mariadb
 
+# Create the necessary directories for MariaDB configuration.
 - name: Create required directories
   file: "path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}"
   with_items:
     - /opt/mariadb
 
+# Create and start the MariaDB Docker container.
 - name: Create and start mariadb container
   docker_container:
     name: mariadb

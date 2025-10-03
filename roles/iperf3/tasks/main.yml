@@ -8,9 +8,16 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# iperf3 Tasks
+# This is the main task file for the iperf3 role. It installs iperf3, a tool
+# for network performance measurement.
+
+# Ensure that the iperf3 package from the system's package manager is not
+# installed, as we will be building from source.
 - name: Make sure iperf3 package is not installed
   apt: "name=iperf3 state=absent"
 
+# Clone the iperf3 repository from GitHub.
 - name: "Clone iperf3 repo"
   git:
     repo: "https://github.com/esnet/iperf.git"
@@ -20,6 +27,7 @@
     force: yes
   register: diff
 
+# Build and install iperf3 from source.
 - name: "Build and install iperf3"
   shell: |
     export LD_RUN_PATH=/usr/local/lib
@@ -31,16 +39,19 @@
     rm -rf /var/tmp/iperf3
   register: diff
 
+# Get the path to the iperf3 binary.
 - name: "Get iperf3 binary path"
   shell: "which iperf3"
   register: iperf3_binary
   when: diff is success
 
+# Get the installed version of iperf3.
 - name: "Get iperf3 version"
   shell: "{{ iperf3_binary.stdout }} --version | head -n 1 | awk '{ print $2 }'"
   register: iperf3_version
   when: diff is success
 
+# Display the installed version of iperf3.
 - name: "Display iperf3 version"
   debug:
     msg: "iperf3 {{ iperf3_version.stdout }} installed."

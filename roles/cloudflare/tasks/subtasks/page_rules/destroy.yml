@@ -8,6 +8,10 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Destroy Page Rules Tasks
+# This file contains tasks for deleting Cloudflare page rules.
+
+# Delete any existing Cloudflare page rules for Lets Encrypt.
 - name: Page Rules | Destroy | Destroy Previous Cloudflare Page Rules for Lets Encrypt
   uri:
     url: 'https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone }}/pagerules/{{ item }}'
@@ -20,6 +24,7 @@
   loop: "{{ cloudflare_page_rules }}"
   register: cf_page_rule_destruction
 
+# Print the result of the page rule deletion.
 - name: Page Rules | Destroy | Print result of Lets Encrypt Cloudflare Page Rule Destruction
   debug:
     msg: "Successfully deleted Let's Encrypt Cloudflare page rule for '{{ user.domain }}'"

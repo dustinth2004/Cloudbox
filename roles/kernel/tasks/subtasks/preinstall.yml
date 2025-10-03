@@ -8,10 +8,15 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Preinstall Tasks
+# This file contains tasks that are run during the pre-install phase.
+
+# Display a message indicating that the pre-install has started.
 - name: "Preinstall | Cloudbox pre-install has started!"
   debug:
     msg: "Cloudbox pre-install has started!"
 
+# Set default variables for the pre-install phase.
 - name: Preinstall | Set default preinstall variables
   set_fact:
     preinstall_kernel_restart: false

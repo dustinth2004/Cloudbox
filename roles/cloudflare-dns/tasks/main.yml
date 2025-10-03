@@ -8,21 +8,29 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Cloudflare DNS Tasks
+# This file contains tasks for setting DNS records on Cloudflare.
+
+# Install dnsutils, which provides the 'dig' command.
 - name: Install 'dnsutils'
   apt: "name=dnsutils state=present"
 
+# Get the public IP address of the server.
 - name: Get Public IP Address
   shell: dig -4 TXT +short o-o.myaddr.l.google.com @ns1.google.com | awk -F'\"' '{ print $2}'
   register: public_ip_lookup
 
+# Set the public_ip fact.
 - name: Set 'public_ip' variable
   set_fact:
     public_ip: "{{ public_ip_lookup.stdout }}"
 
+# Set the fully qualified domain name for the record.
 - name: Set 'record' variable
   set_fact:
     record: "{{ (subdomain == user.domain) | ternary(user.domain,subdomain + '.' + user.domain) }}"
 
+# Create or update the A record on Cloudflare.
 - name: Set DNS Record
   cloudflare_dns:
     account_api_token: "{{ cloudflare.api }}"
@@ -35,6 +43,7 @@
     value: "{{ public_ip }}"
     record: "{{ subdomain }}"
 
+# Display the DNS record that was set.
 - name: Display DNS Record
   debug:
     msg: "DNS Record for '{{ record }}' set to '{{ public_ip }}'."

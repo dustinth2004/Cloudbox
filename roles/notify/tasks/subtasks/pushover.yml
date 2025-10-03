@@ -8,6 +8,10 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Pushover Tasks
+# This file contains tasks for sending notifications with Pushover.
+
+# Send a notification using Pushover.
 - name: Pushover | Send Notification
   pushover:
     msg: "{{ message }}"

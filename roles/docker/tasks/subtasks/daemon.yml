@@ -8,11 +8,17 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Docker Daemon Tasks
+# This file contains tasks for configuring the Docker daemon.
+
+# Create the /etc/docker directory.
 - name: Create docker directory
   file: "path={{ item }} state=directory mode=0775 owner=root group=root"
   with_items:
     - /etc/docker
 
+# Create the daemon.json file from the template. This file contains configuration
+# for the Docker daemon.
 - name: "Daemon | Import 'daemon.json'"
   template:
     src: daemon.json.j2
@@ -20,12 +26,15 @@
     mode: 0775
     force: yes
 
+# Create the directory for the Docker service override file.
 - name: "Daemon | Create override directory"
   file:
     path: /etc/systemd/system/docker.service.d
     state: directory
     mode: 0775
 
+# Create the override.conf file from the template. This file is used to
+# override the default Docker service configuration.
 - name: "Daemon | Import override file"
   template:
     src: override.conf.j2
@@ -33,6 +42,8 @@
     mode: 0775
     force: no
 
+# Add an 'After' directive to the override.conf file to ensure that the Docker
+# service starts after the unionfs or mergerfs service.
 - name: "Daemon | Edit override file"
   ini_file:
     path: /etc/systemd/system/docker.service.d/override.conf
@@ -42,5 +53,6 @@
     state: present
     no_extra_spaces: yes
 
+# Remove the old 'init' entry from the daemon.json file.
 - name: "Daemon | Remove old init entry from '/etc/docker/daemon.json'"
   shell: jq 'del(."init")' /etc/docker/daemon.json  | sponge /etc/docker/daemon.json

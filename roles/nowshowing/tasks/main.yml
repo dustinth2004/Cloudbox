@@ -9,6 +9,13 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# NowShowing Tasks
+# This is the main task file for the NowShowing role. It installs and
+# configures NowShowing, a tool for displaying what is currently playing on
+# Plex.
+
+# Include the cloudflare-dns role to set the DNS record for the nowshowing
+# subdomain.
 - name: "Set DNS Record on CloudFlare"
   include_role:
     name: cloudflare-dns
@@ -16,16 +23,19 @@
     subdomain: nowshowing
   when: cloudflare_enabled
 
+# Ensure that any previous NowShowing container is removed.
 - name: Stop and remove any existing container
   docker_container:
     name: nowshowing
     state: absent
 
+# Create the necessary directories for NowShowing configuration.
 - name: Create NowShowing directories
   file: "path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}"
   with_items:
     - /opt/nowshowing
 
+# Create and start the NowShowing Docker container.
 - name: Create and start container
   docker_container:
     name: nowshowing

@@ -8,17 +8,23 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Feeder Mount Tasks
+# This file contains tasks for mounting the feeder box directories.
+
+# Create the /mnt/feeder directory.
 - name: Create feeder directories
   file: 'path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}'
   with_items:
     - /mnt/feeder
 
+# Create the feeder.service file from the template.
 - name: Import 'feeder.service' file if missing
   template:
     src: feeder.service.j2
     dest: /etc/systemd/system/feeder.service
     force: "{{ 'yes' if ('feeder_mount_override' in ansible_run_tags) else 'no' }}"
 
+# Set the User and Group in the feeder.service file.
 - name: Change ownership in 'feeder.service'
   ini_file:
     path: "/etc/systemd/system/feeder.service"
@@ -31,6 +37,7 @@
     - { option: 'User', value: "{{ user.name }}" }
     - { option: 'Group', value: "{{ user.name }}" }
 
+# Start and enable the feeder.service.
 - name: Start 'feeder.service'
   systemd:
     name: feeder
@@ -39,7 +46,10 @@
     daemon_reload: yes
 
 # UnionFS Edits
+# The following tasks modify the unionfs.service file to use the feeder mount.
 
+# Add an 'After' directive to the unionfs.service file to ensure that it
+# starts after the feeder.service.
 - name: Add 'After=feeder.service' to 'unionfs.service'
   lineinfile:
     path: /etc/systemd/system/unionfs.service
@@ -49,6 +59,7 @@
     backrefs: yes
   when: unionfs_service.stat.exists
 
+# Replace /mnt/local with /mnt/feeder in the unionfs.service file.
 - name: Replace '/mnt/local' with '/mnt/feeder' in 'unionfs.service'
   replace:
     path: /etc/systemd/system/unionfs.service
@@ -57,7 +68,10 @@
   when: unionfs_service.stat.exists
 
 # MergerFS Edits
+# The following tasks modify the mergerfs.service file to use the feeder mount.
 
+# Add an 'After' directive to the mergerfs.service file to ensure that it
+# starts after the feeder.service.
 - name: Add 'After=feeder.service' to 'mergerfs.service'
   lineinfile:
     path: /etc/systemd/system/mergerfs.service
@@ -67,6 +81,7 @@
     backrefs: yes
   when: mergerfs_service.stat.exists
 
+# Replace /mnt/local with /mnt/feeder in the mergerfs.service file.
 - name: Replace '/mnt/local' with '/mnt/feeder' in 'mergerfs.service'
   replace:
     path: /etc/systemd/system/mergerfs.service

@@ -8,41 +8,53 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Docker Tasks
+# This is the main task file for the Docker role. It installs and configures Docker.
+
+# Check the filesystem type of the /var/lib/ directory.
 - name: Check filesystem of '/var/lib/' path
   shell: stat -f -c %T /var/lib/
   register: var_lib_file_system
 
+# Check if the Docker binary is already installed.
 - name: Check to see if docker is installed
   stat:
     path: "/usr/bin/docker"
   register: docker_binary
 
+# Gather facts about the system services if Docker is installed.
 - name: Populate Service Facts
   service_facts:
   when: docker_binary.stat.exists
 
+# Check if the Docker service is running.
 - name: Get Docker service state
   set_fact:
     docker_service_running: "{{ (services['docker.service'] is defined) and (services['docker.service']['state'] == 'running') }}"
   when: docker_binary.stat.exists
 
+# This block is executed if Docker is installed and running.
 - name: Tasks for when Docker exists and is running
   block:
 
+  # Get a list of all running Docker containers.
   - name: Gather list of running Docker containers
     shell: "docker ps --format '{{ '{{' }} .Names{{ '}}' }}' | xargs echo -n"
     register: docker_running_containers
     ignore_errors: yes
 
+  # Stop all running Docker containers.
   - name: Stop all running Docker containers
     shell: "docker stop {{ docker_running_containers.stdout }} &> /dev/null || true"
     ignore_errors: yes
     when: (docker_running_containers.stdout | trim | length > 0)
 
+  # If the filesystem is BTRFS, import the BTRFS cleanup tasks.
   - name: Import BTRFS Cleanup Tasks
     include_tasks: "subtasks/btrfs/cleanup.yml"
     when: ('btrfs' in var_lib_file_system.stdout)
 
+  # Stop the Docker service.
   - name: Stop docker service
     systemd:
       name: docker
@@ -50,16 +62,21 @@
 
   when: (docker_binary.stat.exists) and (docker_service_running)
 
+# Import the tasks for configuring the Docker daemon.
 - name: "Import Daemon Tasks"
   import_tasks: "subtasks/daemon.yml"
 
+# Import the tasks for installing the Docker binary.
 - name: "Import Docker Binary tasks"
   include_tasks: "subtasks/binary/binary.yml"
 
+# If the filesystem is BTRFS, import the tasks for setting up the BTRFS
+# pseudo-filesystem.
 - name: Import BTRFS Psuedo-File-System Tasks
   include_tasks: "subtasks/btrfs/pseudo_file_system.yml"
   when: ('btrfs' in var_lib_file_system.stdout)
 
+# Start and enable the Docker service.
 - name: Start docker service
   systemd:
     name: docker
@@ -67,24 +84,31 @@
     enabled: yes
     daemon_reload: yes
 
+# Wait for 30 seconds for the Docker service to start.
 - name: Wait for 30 seconds before commencing
   wait_for:
     timeout: 30
 
+# Stop all Docker containers. This is done to ensure a clean state before
+# configuring the network.
 - name: "Stop all Docker containers"
   shell: docker stop $(docker ps -aq) &> /dev/null || true
 
+# Import the tasks for configuring the Docker network.
 - name: "Import Docker Network tasks"
   import_tasks: "subtasks/network.yml"
 
+# Import the tasks for Docker housekeeping.
 - name: "Import Docker Housekeeping tasks"
   import_tasks: "subtasks/housekeeping.yml"
   tags: docker-housekeeping
 
+# Restart any containers that were running before the Docker service was restarted.
 - name: "Re-start all previously running Docker containers"
   shell: 'docker start {{ docker_running_containers.stdout }} &> /dev/null || true'
   when: (docker_binary.stat.exists) and (docker_service_running) and (docker_running_containers.stdout | trim | length > 0)
 
+# Install ctop for monitoring containers.
 - name: "Install ctop"
   import_role:
     name: ctop

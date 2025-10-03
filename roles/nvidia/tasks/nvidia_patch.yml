@@ -8,6 +8,11 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Nvidia Patch Tasks
+# This file contains tasks for applying a patch to the Nvidia driver to remove
+# the transcode limit on consumer-grade GPUs.
+
+# Download the Nvidia patch script.
 - name: Download Nvidia patch
   get_url:
     url:  "https://raw.githubusercontent.com/keylase/nvidia-patch/master/patch.sh"
@@ -18,6 +23,7 @@
     force: yes
     validate_certs: no
 
+# Run the Nvidia patch script.
 - name: Install Nvidia patch
   shell: /tmp/NVIDIA-patch.sh
   args:
@@ -26,11 +32,13 @@
   register: patch_install
   ignore_errors: yes
 
+# Display a success message if the patch was installed successfully.
 - name: Nvidia patch installed!
   debug:
     msg: "Nvidia patch installed!"
   when: (patch_install is succeeded) and ('Patched!' in patch_install.stdout)
 
+# If the patch failed to install, fail the playbook.
 - name: Nvidia patch did not install!
   fail:
     msg:

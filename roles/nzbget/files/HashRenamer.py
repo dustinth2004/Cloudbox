@@ -44,6 +44,12 @@ NZBGET_POSTPROCESS_NONE = 95
 ############################################################
 
 def do_check():
+    """Performs checks to ensure the script is being run in a valid NZBGet
+    environment.
+
+    This function checks for the required environment variables and ensures that
+    the download was successful before proceeding.
+    """
     if not os.environ.has_key('NZBOP_SCRIPTDIR'):
         print "This script can only be called from NZBGet (11.0 or later)."
         sys.exit(0)
@@ -96,6 +102,15 @@ def do_check():
 
 
 def get_file_name(path):
+    """Gets the name and extension of a file.
+
+    Args:
+        path (str): The path to the file.
+
+    Returns:
+        tuple or None: A tuple containing the file name and extension, or None
+            if an error occurred.
+    """
     try:
         file_name = os.path.basename(path)
         extensions = re.findall(r'\.([^.]+)', file_name)
@@ -108,6 +123,14 @@ def get_file_name(path):
 
 
 def is_file_hash(file_name):
+    """Checks if a file name is a hash.
+
+    Args:
+        file_name (str): The name of the file to check.
+
+    Returns:
+        bool: True if the file name is a hash, False otherwise.
+    """
     hash_regexp = [
         r'^[a-fA-F0-9]{40}$',
         r'^[a-fA-F0-9]{32}$',
@@ -121,6 +144,18 @@ def is_file_hash(file_name):
 
 
 def find_files(folder, extension=None, depth=None):
+    """Finds files in a folder.
+
+    Args:
+        folder (str): The folder to search for files in.
+        extension (str, optional): The extension of the files to find.
+            Defaults to None.
+        depth (int, optional): The maximum depth to search for files.
+            Defaults to None.
+
+    Returns:
+        list: A list of files found in the folder.
+    """
     file_list = []
     start_count = folder.count(os.sep)
     for path, subdirs, files in os.walk(folder, topdown=True):

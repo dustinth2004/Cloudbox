@@ -8,11 +8,16 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Hetzner NFS Server Uninstall Tasks
+# This file contains tasks for uninstalling the Hetzner NFS server.
+
+# Check if the nfs_vlan.service file exists.
 - name: Check 'nfs_vlan.service' exists
   stat:
     path: '/etc/systemd/system/nfs_vlan.service'
   register: nfs_vlan_service
 
+# Stop and disable the nfs_vlan.service.
 - name: Stop 'nfs_vlan.service'
   systemd:
     state: stopped
@@ -21,6 +26,7 @@
     enabled: no
   when: nfs_vlan_service.stat.exists
 
+# Uninstall the NFS server packages.
 - name: Uninstall nfs requirements
   apt:
     state: absent
@@ -28,6 +34,7 @@
       - rpcbind
       - nfs-kernel-server
 
+# Remove the configuration files.
 - name: Remove files
   file:
     path: "{{ item }}"
@@ -38,14 +45,17 @@
     - "/etc/hosts.deny"
     - "/opt/hetzner_nfs"
 
+# Display a message indicating that the server will be rebooted.
 - name: Reboot message
   debug:
     msg:
       - "Restarting the server to apply changes..."
 
+# Reboot the server.
 - name: Reboot
   shell: reboot
 
+# This message is displayed if the reboot fails.
 - name: Reboot message
   debug:
     msg:

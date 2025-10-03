@@ -9,6 +9,9 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# airdcpp Tasks
+
+# Include the cloudflare-dns role to set the DNS record for airdcpp.
 - name: "Set DNS Record on CloudFlare"
   include_role:
     name: cloudflare-dns
@@ -16,11 +19,13 @@
     subdomain: airdcpp
   when: cloudflare_enabled
 
+# Ensure that any previous airdcpp container is removed before creating a new one.
 - name: Stop and remove any existing container
   docker_container:
     name: airdcpp
     state: absent
 
+# Create the necessary directories for airdcpp configuration and downloads.
 - name: Create airdcpp directories
   file: "path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}"
   with_items:
@@ -32,16 +37,19 @@
     - /mnt/local/downloads/airdcpp/4K/Movies
     - /mnt/local/downloads/airdcpp/4K/TV
 
+# Check if the WebServer.xml configuration file already exists.
 - name: Check WebServer.xml exists
   stat:
     path: "/opt/airdcpp/WebServer.xml"
   register: webserver_xml
 
+# Check if the DCPlusPlus.xml configuration file already exists.
 - name: Check DCPlusPlus.xml exists
   stat:
     path: "/opt/airdcpp/DCPlusPlus.xml"
   register: dcplusplus_xml
 
+# Copy the default WebServer.xml file if it doesn't already exist.
 - name: Import default 'WebServer.xml'
   copy:
     src: WebServer.xml
@@ -52,6 +60,7 @@
     force: yes
   when: not webserver_xml.stat.exists
 
+# Copy the default DCPlusPlus.xml file if it doesn't already exist.
 - name: Import default 'DCPlusPlus.xml'
   copy:
     src: DCPlusPlus.xml
@@ -62,6 +71,7 @@
     force: yes
   when: not dcplusplus_xml.stat.exists
 
+# Create and start the airdcpp Docker container with the specified configuration.
 - name: Create and start container
   docker_container:
     name: airdcpp

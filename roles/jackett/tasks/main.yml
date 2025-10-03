@@ -9,6 +9,12 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Jackett Tasks
+# This is the main task file for the Jackett role. It installs and configures
+# Jackett, a proxy server for various torrent trackers.
+
+# Include the cloudflare-dns role to set the DNS record for the jackett
+# subdomain.
 - name: "Set DNS Record on CloudFlare"
   include_role:
     name: cloudflare-dns
@@ -16,19 +22,23 @@
     subdomain: jackett
   when: cloudflare_enabled
 
+# Ensure that any previous Jackett container is removed.
 - name: Stop and remove any existing container
   docker_container:
     name: jackett
     state: absent
 
+# Import tasks for migrating from Suitarr.
 - name: Suitarr Migration Tasks
   import_tasks: "subtasks/suitarr_migration.yml"
 
+# Create the necessary directories for Jackett configuration.
 - name: Create jackett directories
   file: "path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}"
   with_items:
     - /opt/jackett
 
+# Create and start the Jackett Docker container.
 - name: Create and start container
   docker_container:
     name: jackett
