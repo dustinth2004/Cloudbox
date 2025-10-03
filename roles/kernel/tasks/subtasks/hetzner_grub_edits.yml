@@ -8,22 +8,30 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Hetzner GRUB Edit Tasks
+# This file contains tasks for editing the GRUB configuration on Hetzner servers.
+
+# Set the kernel parameter to be removed.
 - name: Hetzner | GRUB Edits | Set parameters to remove
   set_fact:
     grub_item_to_remove: "nomodeset"
 
+# Get the current default kernel parameters from the GRUB configuration file.
 - name: Hetzner | GRUB Edits | Get default kernel parameters
   shell: grep "^GRUB_CMDLINE_LINUX_DEFAULT" {{ outer_item.item }} | awk -F"GRUB_CMDLINE_LINUX_DEFAULT=" '{print $2}' | sed 's/"//g'
   register: grub_cmdline_linux_default
 
+# Convert the string of kernel parameters into a list.
 - name: Hetzner | GRUB Edits | Set default kernel parameters
   set_fact:
     grub_default_kernel_parameters: '{{ (grub_cmdline_linux_default.stdout).split() }}'
 
+# Remove the 'nomodeset' parameter from the list of kernel parameters.
 - name: Hetzner | GRUB Edits | Set final kernel parameters
   set_fact:
     grub_final_kernel_parameters: '{{ grub_default_kernel_parameters | difference(grub_item_to_remove) }}'
 
+# Update the GRUB_CMDLINE_LINUX_DEFAULT line in the GRUB configuration file.
 - name: Hetzner | GRUB Edits | Update 'GRUB_CMDLINE_LINUX_DEFAULT'
   replace:
     path: "{{ outer_item.item }}"
@@ -32,9 +40,11 @@
   register: x
   notify: [ 'Reload GRUB' ]
 
+# Flush the handlers to ensure that the GRUB configuration is reloaded.
 - name: Hetzner | GRUB Edits | Execute Handlers
   meta: flush_handlers
 
+# Set a fact indicating that a reboot is necessary.
 - name: Hetzner | GRUB Edits | Set 'reboot_is_necessary' variable
   set_fact:
     reboot_is_necessary: true

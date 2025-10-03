@@ -8,6 +8,10 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Cron Tasks
+# This file contains tasks for setting up cron jobs related to the kernel.
+
+# Create a cron job to remove old kernels on reboot.
 - name: Cron | Purge old kernels on reboot
   cron:
     name: "Remove old kernels on reboot"

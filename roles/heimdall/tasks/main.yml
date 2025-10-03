@@ -9,6 +9,12 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Heimdall Tasks
+# This is the main task file for the Heimdall role. It installs and configures
+# Heimdall, a dashboard for all your web applications.
+
+# Include the cloudflare-dns role to set the DNS record for the heimdall
+# subdomain.
 - name: "Set DNS Record on CloudFlare"
   include_role:
     name: cloudflare-dns
@@ -16,6 +22,7 @@
     subdomain: heimdall
   when: cloudflare_enabled
 
+# Create an htpasswd file for protecting Heimdall with a password.
 - name: Create htpasswd
   htpasswd:
     path: "/opt/nginx-proxy/htpasswd/{{ item }}.{{ user.domain }}"
@@ -27,16 +34,19 @@
   with_items:
     - heimdall
 
+# Ensure that any previous Heimdall container is removed.
 - name: Stop and remove any existing container
   docker_container:
     name: heimdall
     state: absent
 
+# Create the necessary directories for Heimdall configuration.
 - name: Create heimdall directories
   file: "path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}"
   with_items:
     - /opt/heimdall
 
+# Create and start the Heimdall Docker container.
 - name: Create and start container
   docker_container:
     name: heimdall

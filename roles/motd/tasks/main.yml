@@ -8,6 +8,11 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# MOTD Tasks
+# This is the main task file for the motd role. It sets up a dynamic Message
+# of the Day.
+
+# Install packages required for the MOTD.
 - name: Install required packages
   apt:
     state: present
@@ -18,6 +23,7 @@
       - toilet
       - boxes
 
+# Install packages required for the MOTD on Ubuntu.
 - name: Install required packages
   apt:
     state: present
@@ -26,6 +32,7 @@
       - update-notifier-common
   when: (ansible_distribution|lower == 'ubuntu')
 
+# Remove any existing MOTD files and directories.
 - name: Remove existing motd
   file: "path={{ item }} state=absent"
   with_items:
@@ -33,16 +40,19 @@
     - /etc/motd
     - /etc/motd.dynamic
 
+# Create the directory for the MOTD scripts.
 - name: Create motd directories
   file: "path={{ item }} state=directory owner={{ user.name }} group={{ user.name }} mode=0775 recurse=yes"
   with_items:
     - /opt/motd
 
+# Check if the MOTD news service is configured.
 - name: Check if MOTD news service
   stat:
     path: "/etc/default/motd-news"
   register: motd_news
 
+# Disable the MOTD news service.
 - name: Disable MOTD news service
   ini_file:
     path: "/etc/default/motd-news"
@@ -53,12 +63,14 @@
     state: present
   when: (motd_news.stat.exists)
 
+# Create the directory for the dynamic MOTD scripts.
 - name: Create dynamic motd directory
   file:
     path: /etc/update-motd.d
     state: directory
     mode: 0775
 
+# Clone the Cloudbox MOTD repository.
 - name: Clone Cloudbox MOTD
   git:
     repo: https://github.com/cloudbox/motd.git
@@ -69,16 +81,19 @@
   become: yes
   become_user: "{{ user.name }}"
 
+# Install the Python requirements for the MOTD scripts.
 - name: Install pip requirements
   pip:
     requirements: /opt/motd/requirements.txt
     executable: pip3
 
+# Check if the config.json file exists.
 - name: Check if 'config.json' exists
   stat:
     path: "/opt/motd/config.json"
   register: motd_config
 
+# Create the config.json file from the template if it does not exist.
 - name: Import default 'config.json'
   template:
     src: config.json.j2
@@ -89,6 +104,7 @@
     force: no
   when: (not motd_config.stat.exists)
 
+# Create the activity.log file.
 - name: Touch '/opt/motd/activity.log' file
   file:
     path: /opt/motd/activity.log
@@ -97,6 +113,7 @@
     group: "{{ user.name }}"
     mode: 0775
 
+# Make the cloudbox-motd.py script executable.
 - name: Set 'cloudbox-motd.py' as executable
   file:
     path: /opt/motd/cloudbox-motd.py
@@ -104,9 +121,11 @@
     group: "{{ user.name }}"
     mode: a+x
 
+# Copy the dynamic MOTD scripts to the /etc/update-motd.d directory.
 - name: Import dynamic motd files
   copy: "src=/opt/motd/motd/ dest=/etc/update-motd.d/ force=yes mode=0775"
 
+# Create a symlink from /etc/motd to /var/run/motd.
 - name: Create symlink to dynamic motd
   file:
     src: /var/run/motd
@@ -115,21 +134,25 @@
     force: yes
     follow: no
 
+# Check if the sshd_config file exists.
 - name: Check if '/etc/ssh/sshd_config' exists
   stat:
     path: "/etc/ssh/sshd_config"
   register: sshd_config
 
+# Install the openssh-server package if it is not already installed.
 - name: Install 'openssh-server'
   apt: "name=openssh-server state=present"
   when: (not sshd_config.stat.exists)
 
+# Wait for the sshd_config file to be created.
 - name: Wait for '/etc/ssh/sshd_config' to be created
   wait_for:
     path: "/etc/ssh/sshd_config"
     state: present
   when: (not sshd_config.stat.exists)
 
+# Disable printing the last login time in the MOTD.
 - name: Set 'PrintLastLog no' to '/etc/ssh/sshd_config'
   lineinfile:
     path: "/etc/ssh/sshd_config"

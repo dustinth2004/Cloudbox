@@ -8,16 +8,24 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Feeder Tasks
+# This is the main task file for the feeder role. It includes other task
+# files from the subtasks directory to manage feeder box mounts.
+
+# Stop services before making changes to the mounts.
 - name: "Services Stop Tasks"
   include_tasks: "subtasks/services_stop.yml"
 
+# Mount the feeder box directories.
 - name: "Feeder Mount Tasks"
   include_tasks: "subtasks/feeder_mount.yml"
   when: ('feeder_mount' in ansible_run_tags) or ('feeder_mount_override' in ansible_run_tags)
 
+# Unmount the feeder box directories.
 - name: "Feeder Unmount Tasks"
   include_tasks: "subtasks/feeder_unmount.yml"
   when: ('feeder_unmount' in ansible_run_tags)
 
+# Start services again after making changes to the mounts.
 - name: "Services Start Tasks"
   include_tasks: "subtasks/services_start.yml"

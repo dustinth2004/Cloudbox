@@ -8,31 +8,43 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Kernel Tasks
+# This is the main task file for the kernel role. It includes other task
+# files from the subtasks directory to manage the system kernel.
+
+# Set a default value for the reboot_is_necessary variable.
 - name: Set default 'reboot_is_necessary' variable
   set_fact:
     reboot_is_necessary: false
 
+# Include the preinstall tasks.
 - name: Preinstall task
   include_tasks: "subtasks/preinstall.yml"
   when: ('preinstall' in ansible_run_tags)
 
+# Include the Hetzner-specific tasks.
 - name: "Hetzner Tasks"
   import_tasks: "subtasks/hetzner.yml"
   tags: kernel-hetzner
 
+# Include the cron tasks.
 - name: "Cron Tasks"
   include_tasks: "subtasks/cron.yml"
 
+# Include the tasks for the mainline kernel script.
 - name: "Mainline Kernel Script Tasks"
   include_tasks: "subtasks/script.yml"
 
+# Include the tasks for managing kernel headers.
 - name: "Header Tasks"
   include_tasks: "subtasks/headers.yml"
 
+# Include the tasks for restarting the system if a new kernel was installed.
 - name: "Restart Tasks"
   include_tasks: "subtasks/restart.yml"
   when: (reboot_is_necessary) and
     (not continuous_integration)
 
+# Include the checks tasks.
 - name: "Checks Tasks"
   include_tasks: "subtasks/checks.yml"

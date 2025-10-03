@@ -8,10 +8,15 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Docker Housekeeping Tasks
+# This file contains tasks for cleaning up unused Docker resources.
+
+# Remove all unused Docker images.
 - name: Housekeeping | Remove all unused docker images
   shell: docker image prune -af &> /dev/null || true
   ignore_errors: yes
 
+# Remove all unused Docker volumes.
 - name: Housekeeping | Remove all unused docker volumes
   shell: docker volume prune -f &> /dev/null || true
   ignore_errors: yes

@@ -9,10 +9,18 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Nextcloud Tasks
+# This is the main task file for the Nextcloud role. It installs and configures
+# Nextcloud, a suite of client-server software for creating and using file
+# hosting services.
+
+# Include the MariaDB role, as Nextcloud requires a database.
 - name: MariaDB Role
   include_role:
     name: mariadb
 
+# Include the cloudflare-dns role to set the DNS record for the nextcloud
+# subdomain.
 - name: "Set DNS Record on CloudFlare"
   include_role:
     name: cloudflare-dns
@@ -20,11 +28,13 @@
     subdomain: nextcloud
   when: cloudflare_enabled
 
+# Ensure that any previous Nextcloud container is removed.
 - name: Stop and remove any existing containers
   docker_container: "name={{ item }} state=absent"
   with_items:
     - nextcloud
 
+# Create the necessary directories for Nextcloud configuration and data.
 - name: Create required directories
   file: "path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}"
   with_items:
@@ -32,6 +42,7 @@
     - /opt/nextcloud/conf
     - /opt/nextcloud/data
 
+# Create and start the Nextcloud Docker container.
 - name: Create and start nextcloud container
   docker_container:
     name: nextcloud

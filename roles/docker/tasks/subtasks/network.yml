@@ -8,18 +8,25 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Docker Network Tasks
+# This file contains tasks for managing the Docker network.
+
+# Get a list of all Docker networks.
 - name: Network | Get list of docker networks
   shell: docker network ls --format '{{ '{{' }} .Name{{ '}}' }}'
   register: docker_networks
 
+# Get the gateway of the cloudbox network.
 - name: Network | Get cloudbox docker network gateway
   shell: docker network inspect cloudbox -f '{{ '{{' }}range .IPAM.Config{{ '}}' }}{{ '{{' }}.Gateway{{ '}}' }}{{ '{{' }}end{{ '}}' }}'
   register: docker_gateway
   when: ('cloudbox' in docker_networks.stdout_lines)
 
+# This block is executed if the cloudbox network does not exist.
 - name: "Network | Create new cloudbox docker network block"
   block:
 
+  # Create the cloudbox network.
   - name: Create cloudbox network
     docker_network:
       name: cloudbox
@@ -27,13 +34,17 @@
 
   when: ('cloudbox' not in docker_networks.stdout_lines)
 
+# This block is executed if the cloudbox network already exists and the gateway
+# is not what it should be. This is to handle a change in the default gateway.
 - name: "Network | Rebuild existing cloudbox docker network block"
   block:
 
+  # Get a list of all containers connected to the cloudbox network.
   - name: Network | Get list of containers on cloudbox network
     shell: docker ps -a --filter network=cloudbox --format '{{ '{{' }}.Names{{ '}}' }}'
     register: docker_containers
 
+  # Disconnect all containers from the bridge network.
   - name: Network | Disconnect containers from bridge network
     shell: docker network disconnect -f bridge {{ item }}
     with_items: "{{ docker_containers.stdout_lines }}"
@@ -41,12 +52,14 @@
     failed_when: r.rc > 1
     ignore_errors: yes
 
+  # Recreate the cloudbox network.
   - name: Network | Rebuild cloudbox network
     docker_network:
       name: cloudbox
       state: present
       force: yes
 
+  # Reconnect all containers to the cloudbox network.
   - name: Network | Connect containers to cloudbox network
     shell: docker network connect cloudbox {{ item }} --alias {{ item }}
     with_items: "{{ docker_containers.stdout_lines }}"

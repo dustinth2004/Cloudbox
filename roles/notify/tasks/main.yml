@@ -8,9 +8,16 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Notify Tasks
+# This is the main task file for the notify role. It sends notifications to
+# various services.
+
+# Import the variables tasks.
 - name: Import Variables Task
   import_tasks: "subtasks/variables.yml"
 
+# Loop through the enabled notification services and include the corresponding
+# task file.
 - name: Sent Notification
   include_tasks: "subtasks/{{ item }}.yml"
   loop: "{{ notification_services }}"

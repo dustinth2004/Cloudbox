@@ -8,16 +8,24 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Migration Tasks
+# This file contains tasks for migrating the community repository from an old
+# location to a new one.
+
+# Check if the community directory exists in the user's home directory.
 - name: Migration | Check if 'community' folder exists in '/home'
   stat:
     path: "/home/{{ user.name }}/community"
   register: folder_home
 
+# Check if the community directory exists in /opt.
 - name: Migration | Check if 'community' folder exists in '/opt'
   stat:
     path: /opt/community
   register: folder_opt
 
+# If the community directory exists in the user's home directory but not in
+# /opt, move it to /opt.
 - name: Migration | Move 'community' folder from '/home' folder to '/opt'
   shell: |
     mv {{ folder_home.stat.path }} /opt/

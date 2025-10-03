@@ -8,6 +8,11 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Nvidia Nvtop Tasks
+# This file contains tasks for installing nvtop, a top-like tool for
+# monitoring Nvidia GPUs.
+
+# Install the dependencies required to build nvtop.
 - name: Install nvtop dependencies
   apt: name="{{ item }}" state=present update_cache=yes
   become: true
@@ -16,10 +21,12 @@
       - libncurses5-dev
       - libncursesw5-dev
 
+# Clone the nvtop repository from GitHub.
 - name: Pull nvtop repo from github
   git: clone=yes repo=https://github.com/Syllo/nvtop dest=/tmp/nvtop/
   register: diff
 
+# Build and install nvtop from source.
 - name: Build and install nvtop
   shell: "cd /tmp/nvtop && \
           mkdir build && \
@@ -29,11 +36,13 @@
           make install"
   when: diff.changed
 
+# Get the installed version of nvtop.
 - name: "Get nvtop version"
   shell: "/usr/local/bin/nvtop --version | head -n 1 | awk '{print $3}' | cut -f1,2 -d'-'"
   register: nvtop_version
   ignore_errors: yes
 
+# Display the installed version of nvtop.
 - name: "Display nvtop version"
   debug:
     msg: "nvtop {{ nvtop_version.stdout }} installed."

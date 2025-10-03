@@ -8,12 +8,18 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Nvidia Tasks
+# This is the main task file for the Nvidia role. It installs the Nvidia
+# drivers, the Nvidia Docker runtime, and other related tools.
+
+# Install the jmespath pip module, which is required for the json_query filter.
 - name: Install common pip modules
   pip:
     state: present
     name:
       - jmespath
 
+# Get information about the Nvidia graphics card.
 - name: Fetch Nvidia card info
   shell: |
       if [ `lspci | grep -c -E '.*VGA.*NVIDIA'` -eq 1 ]; then
@@ -23,31 +29,36 @@
       fi
   register: lspci_resp
 
+# This block is executed if an Nvidia graphics card is detected.
 - name: Nvidia Setup block
   block:
 
   # Install Ubuntu drivers
-
+  # Install the ubuntu-drivers-common package, which is required for managing
+  # Nvidia drivers.
   - name: Install Ubuntu drivers
     apt:
       name: ubuntu-drivers-common
       update_cache: yes
       state: present
 
+  # Get a list of available drivers for the detected devices.
   - name: Get list of devices
     shell: ubuntu-drivers devices
     register: ubuntu_devices
 
   # Configure Nvidia Kernel
-
+  # This block configures the kernel for the Nvidia drivers.
   - name: Nvidia Kernel Tasks
     block:
 
+    # Check if the nouveau driver is blacklisted.
     - name: Check if 'blacklist-nouveau.conf' exists
       stat:
         path: "/etc/modprobe.d/blacklist-nouveau.conf"
       register: blacklist_nouveau_conf
 
+    # Include the tasks for configuring the kernel.
     - name: "Nvidia Kernel Task"
       include_tasks: "nvidia_kernel.yml"
       when: (not blacklist_nouveau_conf.stat.exists)
@@ -55,10 +66,11 @@
     when: '("manual_install: True" not in ubuntu_devices.stdout)'
 
   # Install Nvidia Driver
-
+  # This block installs the Nvidia driver.
   - name: Nvidia Driver Tasks
     block:
 
+    # Include the tasks for installing the Nvidia driver.
     - name: "Nvidia Driver Task"
       include_tasks: "nvidia_driver.yml"
       when: (gpu.nvidia.driver | lower != 'ignore')
@@ -66,10 +78,12 @@
     when: '("manual_install: True" not in ubuntu_devices.stdout)'
 
   # Install Nvidia Driver Patch to remove transcode limit
-
+  # This block applies a patch to the Nvidia driver to remove the transcode
+  # limit on consumer-grade GPUs.
   - name: Nvidia Driver Patch Tasks
     block:
 
+    # Check if the driver has already been patched.
     - name: Check to see if patch backup files exist
       find:
         paths: "/opt/nvidia/libnvidia-encode-backup"
@@ -78,6 +92,7 @@
         patterns: '*.so*'
       register: nvidia_patch_backup_files
 
+    # Include the tasks for patching the driver.
     - name: "Nvidia Driver Patch Task"
       include_tasks: "nvidia_patch.yml"
       when: (nvidia_patch_backup_files.matched|int == 0)
@@ -85,32 +100,38 @@
     when: ('GeForce' in lspci_resp.stdout)
 
   # Install Nvidia Runtime Container
-
+  # This block installs the Nvidia Docker runtime, which allows Docker
+  # containers to access the GPU.
   - name: Nvidia Runtime Container Tasks
     block:
 
+    # Get the contents of the Docker daemon.json file.
     - name: Get contents of 'daemon.json'
       shell: cat /etc/docker/daemon.json
       register: docker_daemon_json
 
+    # Get the default Docker runtime.
     - name: Set 'docker_default_runtime'
       set_fact:
         docker_default_runtime: "{{ docker_daemon_json.stdout | from_json | json_query('\"default-runtime\"') }}"
 
+    # Include the tasks for installing the Nvidia Docker runtime.
     - name: "Nvidia Docker Task"
       include_tasks: "nvidia_docker.yml"
       when: (docker_default_runtime != 'nvidia')
 
   # Install Nvidia Nvtop Tool
-
+  # This block installs nvtop, a top-like tool for monitoring Nvidia GPUs.
   - name: Nvidia Nvtop Tasks
     block:
 
+    # Check if nvtop is already installed.
     - name: Check nvtop exists
       stat:
         path: "/usr/local/bin/nvtop"
       register: nvtop_binary
 
+    # Include the tasks for installing nvtop.
     - name: "Nvidia Nvtop Task"
       include_tasks: "nvidia_nvtop.yml"
       when: not nvtop_binary.stat.exists

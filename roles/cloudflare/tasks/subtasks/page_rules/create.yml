@@ -8,6 +8,11 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Create Page Rules Tasks
+# This file contains tasks for creating Cloudflare page rules.
+
+# Create a Cloudflare page rule for Lets Encrypt to disable the browser check
+# for the ACME challenge.
 - name: Page Rules | Create | Create Cloudflare Page Rule for Lets Encrypt
   uri:
     url: 'https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone }}/pagerules'
@@ -30,6 +35,7 @@
     status_code: 200,400
   register: cf_page_rule_creation
 
+# Print the result of the page rule creation.
 - name: Page Rules | Create | Print result of Cloudflare Page Rule Creation
   debug:
     msg: "Successfully created Let's Encrypt Cloudflare page rule for '{{ user.domain }}'"

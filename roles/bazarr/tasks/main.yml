@@ -9,6 +9,9 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Bazarr Tasks
+
+# Include the cloudflare-dns role to set the DNS record for Bazarr.
 - name: "Set DNS Record on CloudFlare"
   include_role:
     name: cloudflare-dns
@@ -16,19 +19,23 @@
     subdomain: bazarr
   when: cloudflare_enabled
 
+# Ensure that any previous Bazarr container is removed before creating a new one.
 - name: Stop and remove any existing container
   docker_container:
     name: bazarr
     state: absent
 
+# Import tasks for migrating from Suitarr.
 - name: Suitarr Migration Tasks
   import_tasks: "subtasks/suitarr_migration.yml"
 
+# Create the necessary directories for Bazarr configuration.
 - name: Create bazarr directories
   file: "path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}"
   with_items:
     - /opt/bazarr
 
+# Create and start the Bazarr Docker container with the specified configuration.
 - name: Create and start container
   docker_container:
     name: bazarr

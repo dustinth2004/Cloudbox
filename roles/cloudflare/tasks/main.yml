@@ -8,6 +8,10 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Cloudflare Tasks
+# This is the main task file for the Cloudflare role. It includes other task
+# files from the subtasks directory.
+
 - name: Variables Task
   import_tasks: "subtasks/variables.yml"
   ignore_errors: yes

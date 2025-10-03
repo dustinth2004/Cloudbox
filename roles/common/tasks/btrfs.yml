@@ -8,21 +8,30 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# BTRFS Tasks
+# This file contains tasks for configuring BTRFS filesystems.
+
+# Check if the directory exists.
 - name: BTRFS | Check if '{{ outer_item }}' exists
   stat:
     path: "{{ outer_item }}"
   register: outer_item_stat
 
+# This block is executed if the directory does not exist.
 - name: BTRFS | Do following tasks when '{{ outer_item }}' does not exist
   block:
 
+  # Create the directory.
   - name: BTRFS | Create '{{ outer_item }}' path
     file: "path={{ outer_item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}"
 
+  # Check the filesystem type of the directory.
   - name: BTRFS | Check file system on '{{ outer_item }}'
     shell: stat -f -c %T "{{ outer_item }}"
     register: outer_item_file_system
 
+  # If the filesystem is BTRFS, set the NOCOW (No Copy On Write) attribute on
+  # the directory to improve performance for database-like workloads.
   - name: BTRFS | Set NOCOW on '{{ outer_item }} if BTRFS'
     shell: "chattr +C {{ outer_item }}"
     when: ('btrfs' in outer_item_file_system.stdout)

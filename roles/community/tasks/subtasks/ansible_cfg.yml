@@ -8,14 +8,21 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# ansible.cfg Tasks
+# This file contains tasks for configuring the ansible.cfg file for the
+# community repository.
+
+# Check if the .ansible_vault file exists in the user's home directory.
 - name: ansible.cfg | Check if '/home/{{ user.name }}/.ansible_vault' file exists
   stat:
     path: "/home/{{ user.name }}/.ansible_vault"
   register: ansible_vault
 
+# This block is executed if the .ansible_vault file exists.
 - name: ansible.cfg | Encryption check block
   block:
 
+  # Check if the accounts.yml file is encrypted with Ansible Vault.
   - name: ansible.cfg | Check 'accounts.yml' for encryption
     shell: "head -1 {{ playbook_dir }}/accounts.yml | grep -q \\$ANSIBLE_VAULT"
     register: encryption_check
@@ -23,16 +30,21 @@
     changed_when: no
     failed_when: encryption_check.rc > 1
 
+  # Set a fact indicating whether the accounts.yml file is encrypted.
   - name: ansible.cfg | Set 'file_is_encrypted' variable
     set_fact:
       file_is_encrypted: "{{ ((encryption_check.rc == 0) | default(false,true)) }}"
 
   when: ansible_vault.stat.exists
 
+# Set a fact indicating whether the vault_password_file option should be added
+# to ansible.cfg.
 - name: ansible.cfg | Set 'add_vault_password_option' variable
   set_fact:
     add_vault_password_file_option: "{{ ansible_vault.stat.exists and file_is_encrypted }}"
 
+# Add or remove the vault_password_file option from ansible.cfg based on the
+# value of the add_vault_password_file_option fact.
 - name: ansible.cfg | Add 'vault_password_file' option into 'ansible.cfg'
   ini_file:
     path: "/opt/community/ansible.cfg"

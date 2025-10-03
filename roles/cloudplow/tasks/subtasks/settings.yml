@@ -8,6 +8,10 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Settings Tasks
+# This file contains tasks for configuring Cloudplow.
+
+# Install jq and moreutils, which are required for manipulating the config file.
 - name: Settings | Install required packages
   apt:
     state: present
@@ -15,19 +19,23 @@
       - jq
       - moreutils
 
+# Import the plex_auth_token role to get a Plex authentication token.
 - name: Settings | Import Plex Auth Token role
   import_role:
     name: plex_auth_token
   when: plex_account_enabled
 
+# Check if the Cloudplow config.json file exists.
 - name: Settings | Check if 'config.json' exists
   stat:
     path: "/opt/cloudplow/config.json"
   register: cloudplow_config
 
+# This block is executed if the config.json file does not exist.
 - name: Settings | New 'config.json' tasks
   block:
 
+  # Create the config.json file from the template.
   - name: Settings | Import default 'config.json'
     template:
       src: config.json.j2
@@ -39,9 +47,11 @@
 
   when: not cloudplow_config.stat.exists
 
+# This block is executed if the config.json file already exists.
 - name: Settings | Existing 'config.json' tasks
   block:
 
+  # Update the rclone config path in the config.json file.
   - name: Settings | Update Rclone config path 'config.json'
     shell: |
       CONFIG_PATH="/opt/cloudplow/config.json"
@@ -49,6 +59,7 @@
     become: yes
     become_user: "{{ user.name }}"
 
+  # Update the NZBGet credentials in the config.json file.
   - name: Settings | Update NZBGet credentials in 'config.json'
     shell: |
       CONFIG_PATH="/opt/cloudplow/config.json"
@@ -56,6 +67,7 @@
     become: yes
     become_user: "{{ user.name }}"
 
+  # Update the Plex URL in the config.json file.
   - name: Settings | Update Plex URL in 'config.json'
     shell: |
       CONFIG_PATH="/opt/cloudplow/config.json"
@@ -63,6 +75,7 @@
     become: yes
     become_user: "{{ user.name }}"
 
+  # Update the Plex token in the config.json file.
   - name: Settings | Update Plex Token in 'config.json'
     shell: |
       CONFIG_PATH="/opt/cloudplow/config.json"
@@ -72,6 +85,7 @@
 
   when: cloudplow_config.stat.exists
 
+# Upgrade the config.json file to the latest version.
 - name: Settings | Upgrade 'config.json'
   shell: "/opt/cloudplow/cloudplow.py update_config"
   become: yes

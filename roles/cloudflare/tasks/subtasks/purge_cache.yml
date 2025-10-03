@@ -8,6 +8,10 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Purge Cache Tasks
+# This file contains tasks for purging the Cloudflare cache.
+
+# Purge the entire cache for the user's domain.
 - name: Purge Cache | Purge Cloudflare Cache for '{{ user.domain }}'
   uri:
     url: 'https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone }}/purge_cache'
@@ -20,6 +24,7 @@
     status_code: 200
   register: cf_purge
 
+# Print the result of the cache purge operation.
 - name: Purge Cache | Print Result of Cloudflare Cache Purge
   debug:
     msg: "{{ ((cf_purge.json.success is defined) and (cf_purge.json.success))

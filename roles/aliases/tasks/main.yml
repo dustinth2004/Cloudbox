@@ -8,11 +8,15 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Aliases Tasks
+
+# Create the directory to store the aliases.
 - name: Create aliases directories
   file: "path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }} recurse=yes"
   with_items:
     - /opt/aliases
 
+# Clone the aliases repository from GitHub.
 - name: Clone aliases
   git:
     repo: https://github.com/Cloudbox/aliases.git
@@ -23,16 +27,19 @@
   become: yes
   become_user: "{{ user.name }}"
 
+# Ensure that the .bash_profile file exists for the user.
 - name: Ensure bash_profile exists
   file:
     path: "/home/{{ user.name }}/.bash_profile"
     state: touch
 
+# Ensure that the .zshenv file exists for the user.
 - name: Ensure zshenv exists
   file:
     path: "/home/{{ user.name }}/.zshenv"
     state: touch
 
+# Add a line to the .bash_profile to source the bash aliases.
 - name: Add aliases to bash_profile
   lineinfile:
     dest: "/home/{{ user.name }}/.bash_profile"
@@ -40,6 +47,7 @@
     line: "eval \"$(find /opt/aliases -type f -path '*bash/*.sh' | while read af; do echo \"source $af\"; done)\""
     state: present
 
+# Add a line to the .zshenv to source the zsh aliases.
 - name: Add aliases to zshenv
   lineinfile:
     dest: "/home/{{ user.name }}/.zshenv"

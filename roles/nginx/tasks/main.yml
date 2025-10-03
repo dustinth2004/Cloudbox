@@ -9,6 +9,12 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Nginx Tasks
+# This is the main task file for the Nginx role. It installs and configures
+# Nginx, a web server.
+
+# Include the cloudflare-dns role to set the DNS record for the nginx
+# subdomain.
 - name: "Set DNS Record on CloudFlare"
   include_role:
     name: cloudflare-dns
@@ -16,6 +22,8 @@
     subdomain: "{{ nginx.subdomain|default('web',true) }}"
   when: (cloudflare_enabled) and not (nginx.direct_domain|default(false,true))
 
+# Include the cloudflare-dns role to set the DNS record for the root domain
+# and www subdomain if direct_domain is enabled.
 - name: "Set DNS Record on CloudFlare"
   include_role:
     name: cloudflare-dns
@@ -26,16 +34,19 @@
     - "www"
   when: (cloudflare_enabled) and (nginx.direct_domain|default(false,true))
 
+# Create the necessary directories for Nginx configuration.
 - name: Create nginx directories
   file: "path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}"
   with_items:
     - /opt/nginx
 
+# Ensure that any previous Nginx container is removed.
 - name: Stop and remove any existing container
   docker_container:
     name: nginx
     state: absent
 
+# Create and start the Nginx Docker container.
 - name: Create and start container
   docker_container:
     name: nginx

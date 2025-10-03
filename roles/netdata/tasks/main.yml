@@ -9,6 +9,12 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Netdata Tasks
+# This is the main task file for the Netdata role. It installs and configures
+# Netdata, a real-time performance monitoring tool.
+
+# Include the cloudflare-dns role to set the DNS record for the netdata
+# subdomain.
 - name: "Set DNS Record on CloudFlare"
   include_role:
     name: cloudflare-dns
@@ -16,12 +22,15 @@
     subdomain: netdata
   when: cloudflare_enabled
 
+# Get the group ID of the docker group. This is required for Netdata to be able
+# to access Docker metrics.
 - name: Get Docker group id.
   shell: "cut -d: -f3 < <(getent group docker)"
   args:
     executable: /bin/bash
   register: docker_group_id
 
+# Create an htpasswd file for protecting Netdata with a password.
 - name: Create htpasswd
   htpasswd:
     path: "/opt/nginx-proxy/htpasswd/{{ item }}.{{ user.domain }}"
@@ -33,11 +42,13 @@
   with_items:
     - netdata
 
+# Ensure that any previous Netdata container is removed.
 - name: Stop and remove any existing container
   docker_container:
     name: netdata
     state: absent
 
+# Create and start the Netdata Docker container.
 - name: Create and start container
   docker_container:
     name: netdata

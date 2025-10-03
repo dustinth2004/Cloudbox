@@ -8,15 +8,22 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Docker Binary Tasks 2
+# This file contains the actual installation tasks for the Docker binaries.
+# It is looped over from binary.yml.
+
+# Reset the temp_version variable.
 - name: Binary | Reset 'temp_version' variable
   set_fact:
     temp_version: ''
 
+# Remove any hold on the package, so it can be installed or upgraded.
 - name: Binary | Release '{{ item.name }}' from hold
   dpkg_selections:
     name: "{{ item.name }}"
     selection: install
 
+# Install the package.
 - name: Binary | Install '{{ item.name }}'
   apt:
     name: "{{ item.package }}"
@@ -24,16 +31,19 @@
     update_cache: yes
     force: yes
 
+# Put a hold on the package to prevent it from being upgraded automatically.
 - name: Binary | Put '{{ item.name }}' into hold
   dpkg_selections:
     name: "{{ item.name }}"
     selection: hold
 
+# Get the installed version of the package.
 - name: Binary | Get '{{ item.name }}' version
   shell: "{{ item.file_path }} --version | head -n 1 | awk '{ print $3 }' | sed 's/,$//'"
   register: temp_version
   ignore_errors: yes
 
+# Display the installed version of the package.
 - name: Binary | Display '{{ item.name }}' version
   debug:
     msg: "{{ item.friendly_name }} version {{ temp_version.stdout }} installed."

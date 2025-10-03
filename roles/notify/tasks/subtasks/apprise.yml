@@ -8,11 +8,16 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Apprise Tasks
+# This file contains tasks for sending notifications with Apprise.
+
+# Install the apprise pip module.
 - name: Apprise | Install 'apprise' pip module
   pip:
     name: apprise
     state: present
 
+# Send a notification using Apprise.
 - name: Apprise | Send Notification
   shell: apprise -b '{{ message }}' '{{ apprise }}'
   become: yes

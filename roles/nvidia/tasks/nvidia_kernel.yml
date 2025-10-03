@@ -8,6 +8,10 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Nvidia Kernel Tasks
+# This file contains tasks for configuring the kernel for the Nvidia driver.
+
+# Blacklist the nouveau driver to prevent it from loading.
 - name: Copy 'blacklist-nouveau.conf'
   copy:
     src: "blacklist-nouveau.conf"
@@ -17,19 +21,24 @@
     mode: 0664
   register: r
 
+# This block is executed if the blacklist file was created.
 - name: Continue with tasks
   block:
 
+  # Display a message indicating that the server will be rebooted.
   - name: Success message
     debug:
       msg: "Disabled nouveau driver. System will now reboot ..."
 
+  # Update the initramfs to include the new blacklist.
   - name: Update initramfs
     command: update-initramfs -u
 
+  # Reboot the server.
   - name: Reboot command
     shell: reboot
 
+  # If the reboot fails, display a message to the user.
   - name: Reboot message
     fail:
       msg: "Disabled nouveau driver. You will need to restart the server for changes to take effect."

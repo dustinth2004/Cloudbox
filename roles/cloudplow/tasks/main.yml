@@ -8,14 +8,20 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Cloudplow Tasks
+# This is the main task file for the Cloudplow role.
+
+# Import the services tasks.
 - name: Import Services Task
   import_tasks: "subtasks/services/main.yml"
 
+# Create the directory for Cloudplow.
 - name: Create cloudplow directories
   file: "path={{ item }} state=directory owner={{ user.name }} group={{ user.name }} mode=0775 recurse=yes"
   with_items:
     - /opt/cloudplow
 
+# Clone the Cloudplow repository from GitHub (HEAD).
 - name: Clone cloudplow repo 'HEAD'
   git:
     repo: https://github.com/l3uddz/cloudplow.git
@@ -28,6 +34,7 @@
   ignore_errors: yes
   register: cloudplow_clone_status
 
+# If cloning HEAD fails, clone the master branch instead.
 - name: Clone cloudplow repo 'master'
   git:
     repo: https://github.com/l3uddz/cloudplow.git
@@ -39,11 +46,13 @@
   become_user: "{{ user.name }}"
   when: cloudplow_clone_status is failed
 
+# Install the Python requirements for Cloudplow.
 - name: Install pip requirements
   pip:
     requirements: /opt/cloudplow/requirements.txt
     executable: pip3
 
+# Make the cloudplow.py script executable.
 - name: Set 'cloudplow.py' as executable
   file:
     path: /opt/cloudplow/cloudplow.py
@@ -51,15 +60,18 @@
     group: "{{ user.name }}"
     mode: a+x
 
+# Create a symlink to the cloudplow.py script in /usr/local/bin.
 - name: "Create '/usr/local/bin/cloudplow' symlink"
   file:
     src: "/opt/cloudplow/cloudplow.py"
     dest: "/usr/local/bin/cloudplow"
     state: link
 
+# Import the settings tasks.
 - name: Import Settings Task
   import_tasks: "subtasks/settings.yml"
 
+# Start and enable the Cloudplow systemd service.
 - name: Start 'cloudplow.service'
   systemd:
     name: cloudplow

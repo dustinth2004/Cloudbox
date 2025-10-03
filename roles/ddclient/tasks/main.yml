@@ -9,16 +9,23 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# ddclient Tasks
+# This is the main task file for the ddclient role. It installs and configures
+# ddclient, a tool for updating dynamic DNS records.
+
+# Ensure that any previous ddclient container is removed before creating a new one.
 - name: Stop and remove any existing container
   docker_container:
     name: ddclient
     state: absent
 
+# Create the necessary directories for ddclient configuration.
 - name: Create ddclient directories
   file: "path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}"
   with_items:
     - /opt/ddclient
 
+# Create a list of subdomains to be managed by ddclient.
 - name:
   set_fact:
     subdomains:
@@ -35,6 +42,7 @@
       - radarr
       - lidarr
 
+# Create the ddclient.conf file from the template.
 - name: Import 'ddclient.conf'
   template:
     src: "ddclient.conf.j2"
@@ -45,6 +53,7 @@
     force: no
   when: cloudflare_enabled
 
+# Create and start the ddclient Docker container with the specified configuration.
 - name: Create and start container
   docker_container:
     name: ddclient

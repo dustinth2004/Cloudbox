@@ -30,6 +30,17 @@ log = None
 
 
 def init_logging(playbook_path):
+    """Initializes the logging for the script.
+
+    Sets up a logger that outputs to both the console and a log file.
+
+    Args:
+        playbook_path (str): The path to the playbook directory, where the log
+            file will be created.
+
+    Returns:
+        logging.Logger: A logger instance.
+    """
     # log settings
     log_format = '%(asctime)s - %(levelname)-10s - %(name)-35s - %(funcName)-35s - %(message)s'
     log_file_path = os.path.join(playbook_path, "settings-updater.log")
@@ -66,6 +77,15 @@ def init_logging(playbook_path):
 ############################################################
 
 def load_settings(file_to_load):
+    """Loads a YAML file.
+
+    Args:
+        file_to_load (str): The path to the YAML file to load.
+
+    Returns:
+        CommentedMap or None: The loaded YAML data as a CommentedMap, or None
+            if an error occurred.
+    """
     settings = None
     try:
         settings = yaml.round_trip_load(open(file_to_load, "r"), preserve_quotes=True)
@@ -75,6 +95,15 @@ def load_settings(file_to_load):
 
 
 def dump_settings(settings, file_to_dump):
+    """Dumps data to a YAML file.
+
+    Args:
+        settings (CommentedMap): The data to dump to the file.
+        file_to_dump (str): The path to the YAML file to dump to.
+
+    Returns:
+        bool: True if the dump was successful, False otherwise.
+    """
     dumped = False
     try:
         with open(file_to_dump, 'w') as fp:
@@ -87,6 +116,23 @@ def dump_settings(settings, file_to_dump):
 
 
 def _inner_upgrade(settings1, settings2, key=None, overwrite=False):
+    """Recursively merges two settings dictionaries.
+
+    This function recursively merges `settings1` into `settings2`. It adds
+    keys from `settings1` that are not in `settings2`.
+
+    Args:
+        settings1 (dict or list): The source settings.
+        settings2 (dict or list): The destination settings to merge into.
+        key (str, optional): The current key being processed. Used for logging.
+            Defaults to None.
+        overwrite (bool, optional): Whether to overwrite existing values in
+            `settings2`. Defaults to False.
+
+    Returns:
+        tuple: A tuple containing the merged settings and a boolean indicating
+            whether an upgrade was performed.
+    """
     sub_upgraded = False
     merged = settings2.copy()
 
@@ -121,6 +167,16 @@ def _inner_upgrade(settings1, settings2, key=None, overwrite=False):
     return merged, sub_upgraded
 
 def upgrade_settings(defaults, currents):
+    """Upgrades the current settings with values from the default settings.
+
+    Args:
+        defaults (CommentedMap): The default settings.
+        currents (CommentedMap): The current settings.
+
+    Returns:
+        tuple: A tuple containing a boolean indicating whether an upgrade was
+            performed and the upgraded settings.
+    """
     upgraded_settings, upgraded = _inner_upgrade(defaults, currents)
     return upgraded, upgraded_settings
 

@@ -8,8 +8,11 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
-# https://github.com/advertine/ansible-cloudflare-purge
+# Cloudflare Variables Tasks
+# This file contains tasks for fetching information from the Cloudflare API and
+# setting variables.
 
+# Fetch the Cloudflare zone ID for the user's domain.
 - name: Variables | Fetch Cloudflare Zones
   uri:
     url: 'https://api.cloudflare.com/client/v4/zones?name={{ user.domain }}'
@@ -21,10 +24,12 @@
     return_content: yes
   register: cf_zones
 
+# Set the cloudflare_zone fact.
 - name: Variables | Set 'cloudflare_zone' Variable
   set_fact:
     cloudflare_zone: "{{ cf_zones.json.result[0].id }}"
 
+# Fetch the IDs of any existing page rules that match the .well-known path.
 - name: Variables | Fetch Cloudflare Page Rules
   shell: |
     curl -X GET "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone }}/pagerules?status=active&order=status&direction=desc&match=all" \
@@ -36,6 +41,7 @@
     warn: no
   register: cf_page_rules
 
+# Set the cloudflare_page_rules fact.
 - name: Variables | Set 'cloudflare_page_rules' Variable
   set_fact:
     cloudflare_page_rules: "{{ cf_page_rules.stdout_lines }}"

@@ -8,24 +8,32 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Services Tasks
+# This file contains tasks for managing the systemd services for Cloudplow.
+
+# Check if the unionfs_cleaner.service file exists.
 - name: Services | Check if 'unionfs_cleaner.service' exists
   stat:
     path: "/etc/systemd/system/unionfs_cleaner.service"
   register: unionfs_cleaner_service
 
+# If the unionfs_cleaner.service file exists, import the tasks to manage it.
 - name: Services | Existing 'unionfs_cleaner.service' Tasks
   import_tasks: "unionfs_cleaner.yml"
   when: unionfs_cleaner_service.stat.exists
 
+# Check if the cloudplow.service file exists.
 - name: Services | Check 'cloudplow.service' exists
   stat:
     path: "/etc/systemd/system/cloudplow.service"
   register: cloudplow_service
 
+# If the cloudplow.service file exists, import the tasks to manage it.
 - name: Services | Existing 'cloudplow.service' Tasks
   import_tasks: "cloudplow.yml"
   when: cloudplow_service.stat.exists
 
+# If the cloudplow.service file does not exist, create it from the template.
 - name:  Services | Import 'cloudplow.service' file
   template:
     src: cloudplow.service.j2

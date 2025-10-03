@@ -9,6 +9,11 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Emby Tasks
+# This is the main task file for the Emby role. It installs and configures Emby,
+# a media server.
+
+# Include the cloudflare-dns role to set the DNS record for the emby subdomain.
 - name: "Set DNS Record on CloudFlare"
   include_role:
     name: cloudflare-dns
@@ -16,6 +21,7 @@
     subdomain: emby
   when: cloudflare_enabled
 
+# Create the necessary directories for Emby configuration and transcodes.
 - name: Create emby directories
   file: "path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}"
   with_items:
@@ -24,16 +30,20 @@
     - /opt/emby/config/users
     - "{{ plex.transcodes }}/emby"
 
+# Ensure that any previous Emby container is removed.
 - name: Stop and remove any existing container
   docker_container:
     name: emby
     state: absent
 
+# Check if the /dev/dri directory exists, which is required for hardware
+# acceleration with Intel GPUs.
 - name: "Check if '/dev/dri' exists"
   stat:
     path: "/dev/dri"
   register: dev_dri
 
+# Create and start the Emby Docker container.
 - name: Create and start container
   docker_container:
     name: emby
@@ -71,11 +81,13 @@
     restart_policy: unless-stopped
     state: started
 
-# we need this here because sometimes after a restore, docker will set this transcodes folder to root, dont ask why, but it does...
+# This is a workaround for an issue where Docker sometimes sets the ownership of
+# the transcodes folder to root after a restore.
 - name: "Wait 5 seconds"
   wait_for:
     timeout: 5
 
+# Ensure that the transcodes folder has the correct permissions.
 - name: "Ensure transcodes folder has the correct permissions"
   file:
     path: "{{ plex.transcodes }}"
@@ -84,5 +96,6 @@
     mode: 0775
     recurse: yes
 
+# Import the settings tasks.
 - name: Settings Tasks
   include_tasks: "subtasks/settings.yml"

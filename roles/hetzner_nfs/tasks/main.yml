@@ -8,38 +8,50 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Hetzner NFS Tasks
+# This is the main task file for the Hetzner NFS role. It includes other task
+# files based on the tags used when running the playbook.
+
+# This block contains tasks for managing the Hetzner NFS server.
 - name: Server Tasks
   block:
 
+  # Include the tasks for setting up the Hetzner NFS server.
   - name: "Hetzner NFS Server Tasks"
     include_tasks: "hetzner_nfs_server.yml"
     when: ('hetzner_nfs_server' in ansible_run_tags)
 
+  # Include the tasks for uninstalling the Hetzner NFS server.
   - name: "Hetzner NFS Server Uninstall Tasks"
     include_tasks: "hetzner_nfs_server_uninstall.yml"
     when: ('hetzner_nfs_server_uninstall' in ansible_run_tags)
 
   when: ('hetzner_nfs_server' in ansible_run_tags) or ('hetzner_nfs_server_uninstall' in ansible_run_tags)
 
-
+# This block contains tasks for managing the Hetzner NFS client.
 - name: Client Tasks
   block:
 
+  # Fail if the mount_client variable is not within the valid range.
   - name: Fail when invalid hetzner_nfs.mount_client is specified
     fail: msg="You must use a value larger than 2 and lower than 251 for the Hetzner NFS mount_client advanced setting."
     when: hetzner_nfs.mount_client < 3 or hetzner_nfs.mount_client > 250
 
+  # Stop services before making changes to the mounts.
   - name: "Services Stop Tasks"
     include_tasks: "services_stop.yml"
 
+  # Include the tasks for mounting the Hetzner NFS share.
   - name: "Hetzner NFS Mount Tasks"
     include_tasks: "hetzner_nfs_mount.yml"
     when: ('hetzner_nfs_client_mount' in ansible_run_tags)
 
+  # Include the tasks for unmounting the Hetzner NFS share.
   - name: "Hetzner NFS UNmount Tasks"
     include_tasks: "hetzner_nfs_unmount.yml"
     when: ('hetzner_nfs_client_unmount' in ansible_run_tags)
 
+  # Start services again after making changes to the mounts.
   - name: "Services Start Tasks"
     include_tasks: "services_start.yml"
 

@@ -8,22 +8,31 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Mainline Kernel Script Tasks
+# This file contains tasks for managing the ubuntu-mainline-kernel.sh script.
+
+# Check if the ubuntu-mainline-kernel.sh script already exists.
 - name: Mainline Kernel Script | Check for existing 'ubuntu-mainline-kernel.sh'
   stat:
     path: /usr/local/bin/ubuntu-mainline-kernel.sh
   register: existing_local_script
 
+# This block is executed if the script already exists. It checks if an update
+# is available and downloads it if necessary.
 - name: Mainline Kernel Script | Tasks for when 'ubuntu-mainline-kernel.sh' exists
   block:
 
+  # Calculate the hash of the local script.
   - name: Mainline Kernel Script | Calculate hash blob for existing 'ubuntu-mainline-kernel.sh'
     shell: git hash-object /usr/local/bin/ubuntu-mainline-kernel.sh
     register: existing_local_script_hash_raw
 
+  # Set a fact with the local script hash.
   - name: Mainline Kernel Script | Set 'existing_local_script_hash' variable
     set_fact:
       existing_local_script_hash: "{{ existing_local_script_hash_raw.stdout }}"
 
+  # Get the hash of the remote script from the GitHub API.
   - name: Mainline Kernel Script | Get hash blob for latest 'ubuntu-mainline-kernel.sh'
     uri:
       url: https://api.github.com/repos/pimlie/ubuntu-mainline-kernel.sh/contents/ubuntu-mainline-kernel.sh
@@ -32,11 +41,14 @@
     register: blob_lookup
     ignore_errors: yes
 
+  # Set a fact with the remote script hash.
   - name: Mainline Kernel Script | Set 'remote_script_hash' variables
     set_fact:
       remote_script_hash: "{{ blob_lookup.json.sha }}"
     when: (blob_lookup is succeeded) and (blob_lookup.json.sha is defined)
 
+  # If the local and remote hashes are different, download the new version of
+  # the script.
   - name: Mainline Kernel Script | Download and install 'ubuntu-mainline-kernel.sh'
     get_url:
       url:  https://raw.githubusercontent.com/pimlie/ubuntu-mainline-kernel.sh/master/ubuntu-mainline-kernel.sh
@@ -61,6 +73,7 @@
 
   when: existing_local_script.stat.exists
 
+# If the script does not exist, download and install it.
 - name: Mainline Kernel Script | Download and install 'ubuntu-mainline-kernel.sh'
   get_url:
     url:  https://raw.githubusercontent.com/pimlie/ubuntu-mainline-kernel.sh/master/ubuntu-mainline-kernel.sh
@@ -73,11 +86,13 @@
   ignore_errors: yes
   when: (not existing_local_script.stat.exists)
 
+# Check if the script was installed successfully.
 - name: Mainline Kernel Script | Look for '/usr/local/bin/ubuntu-mainline-kernel.sh'
   stat:
     path: /usr/local/bin/ubuntu-mainline-kernel.sh
   register: new_local_script
 
+# Validate the downloaded script by checking its shebang.
 - name: Mainline Kernel Script | Mainline Kernel Script | Validate '/usr/local/bin/ubuntu-mainline-kernel.sh'
   shell: head -1 /usr/local/bin/ubuntu-mainline-kernel.sh | grep -q '#!/usr/bin/env bash\b'
   register: validate_script
@@ -85,6 +100,8 @@
   failed_when: validate_script.rc > 1
   when: new_local_script.stat.exists
 
+# If the validation fails, copy the script from the role's files directory as a
+# fallback.
 - name: Mainline Kernel Script | Import script if validation failed
   copy:
     src: "ubuntu-mainline-kernel.sh"

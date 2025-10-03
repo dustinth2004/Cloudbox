@@ -8,13 +8,17 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
-# Remove trailing forward slashes from backup paths
+# Variables Tasks
+# This file contains tasks for setting and modifying variables used in the backup role.
+
+# Remove any trailing slashes from the backup destination paths.
 - name: Remove trailing forward slashes from backup paths
   set_fact:
     local_tmp: { destination: "{{ (local.destination | default('',true)) | regex_replace('\\/$', '') }}" }
     rclone_tmp: { destination: "{{ (rclone.destination | default('',true)) | regex_replace('\\/$', '') }}" }
     rsync_tmp: { destination: "{{ (rsync.destination | default('',true)) | regex_replace('\\/$', '') }}" }
 
+# Merge the cleaned paths back into the original variables.
 - name: Merge changes back
   set_fact:
     local: "{{ local | combine(local_tmp) }}"
@@ -22,6 +26,7 @@
     rsync: "{{ rsync | combine(rsync_tmp) }}"
 
 # Restore service
+# Check if the restore service is enabled and all required variables are defined.
 - name: "Set 'restore_service_enabled' variable"
   set_fact:
     restore_service_enabled: "{{ true if not(

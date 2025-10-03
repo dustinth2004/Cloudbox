@@ -8,6 +8,10 @@
 #                   GNU General Public License v3.0                     #
 #########################################################################
 ---
+# Common Tasks
+# This is the main task file for the common role. It sets up the base system.
+
+# Include the BTRFS tasks.
 - name: BTRFS Tasks
   include_tasks: "btrfs.yml"
   loop:
@@ -16,6 +20,7 @@
   loop_control:
     loop_var: outer_item
 
+# Create common directories required by Cloudbox.
 - name: Create common directories
   file: "path={{ item }} state=directory mode=0775 owner={{ user.name }} group={{ user.name }}"
   with_items:
@@ -30,6 +35,7 @@
     - /mnt/local/Media/Music
     - /mnt/local/Media/TV
 
+# Install packages required for managing apt repositories.
 - name: Install required packages
   apt:
     state: present
@@ -38,6 +44,7 @@
       - ca-certificates
       - software-properties-common
 
+# Add the multiverse repository for Ubuntu.
 - name: Add Ubuntu repositories
   apt_repository:
     repo: "{{ item }}"
@@ -50,6 +57,7 @@
     - 'deb-src http://archive.ubuntu.com/ubuntu {{ ansible_distribution_release }}-updates multiverse'
   when: ansible_distribution == 'Ubuntu'
 
+# Add the contrib and non-free repositories for Debian.
 - name: Add Debian repositories
   apt_repository:
     repo: "{{ item }}"
@@ -66,10 +74,12 @@
     - deb-src https://deb.debian.org/debian {{ ansible_distribution_release }}-backports main contrib non-free
   when: ansible_distribution == 'Debian'
 
+# Get information about the PCI devices, specifically the VGA controller.
 - name: Fetch pci info
   shell: "lspci -v -s $(lspci | grep -E '.*VGA.*Intel.*' | cut -d' ' -f 1) 2>/dev/null || :"
   register: lscpi_resp
 
+# Install a set of common packages that are useful for a server.
 - name: Install common packages
   apt:
     state: present
@@ -106,6 +116,7 @@
       - "moreutils"
   ignore_errors: yes
 
+# Install some extra packages.
 - name: Install extra packages
   apt:
     state: present
@@ -113,21 +124,25 @@
       - "run-one"
   ignore_errors: yes
 
+# Install Intel GPU tools if an Intel GPU is detected.
 - name: Install 'intel-gpu-tools'
   apt: "name=intel-gpu-tools state=present"
   when: ('i915' not in lscpi_resp.stdout)
 
+# Install the non-free unrar package.
 - name: Install unrar
   apt:
     name: unrar
     state: present
   ignore_errors: yes
 
+# Check if the unrar package was installed successfully.
 - name: Check to see if unrar installed
   stat:
     path: "/usr/bin/unrar"
   register: unrar_binary
 
+# If the non-free unrar package failed to install, install the free version.
 - name: Install unrar-free if unrar was not installed
   apt:
     name: unrar-free
@@ -135,6 +150,7 @@
   ignore_errors: yes
   when: (not unrar_binary.stat.exists)
 
+# Create the pip.conf file.
 - name: "Import pip.conf into /home/{{ user.name }}/.config/pip/pip.conf"
   copy:
     src: "pip.conf"
@@ -144,6 +160,7 @@
     mode: 0775
     force: yes
 
+# Install a set of common Python packages using pip.
 - name: Install common pip modules
   pip:
     state: present
@@ -160,6 +177,7 @@
       - apprise
   ignore_errors: yes
 
+# Uninstall the apt version of glances.
 - name: Uninstall apt glances
   apt:
     name: glances
@@ -167,40 +185,47 @@
   ignore_errors: yes
   tags: glances
 
+# Install glances using pip.
 - name: Install pip glances
   shell: pip install glances[action,browser,cloud,cpuinfo,docker,folders,gpu,graph,ip,raid,snmp,web]
   tags: glances
 
+# Install the z role for directory jumping.
 - name: Install z
   import_role:
     name: z
   tags: z
   ignore_errors: yes
 
+# Install the nodejs role.
 - name: Install nodejs
   import_role:
     name: nodejs
   tags: nodejs
   ignore_errors: yes
 
+# Install the hostess role for managing /etc/hosts.
 - name: Install hostess
   import_role:
     name: hostess
   tags: hostess
   ignore_errors: yes
 
+# Install the ngrok role for creating secure tunnels.
 - name: Install ngrok
   import_role:
     name: ngrok
   tags: ngrok
   ignore_errors: yes
 
+# Install the iperf3 role for network performance testing.
 - name: Install iperf3
   import_role:
     name: iperf3
   tags: iperf3
   ignore_errors: yes
 
+# Install the nethogs role for monitoring network traffic.
 - name: Install nethogs
   import_role:
     name: nethogs
